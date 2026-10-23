@@ -435,6 +435,18 @@
   font-weight: 700;
 }
 
+.water-search-card .water-primary-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.water-search-card .water-primary-button .water-icon {
+  width: 19px;
+  height: 19px;
+}
+
 .water-primary-button:hover {
   background: var(--blue-dark);
 }
@@ -932,15 +944,6 @@
 
 .water-app-store-icon {
   fill: currentColor;
-  stroke: currentColor;
-  stroke-width: 0;
-}
-
-.water-app-store-icon path:last-child {
-  fill: none;
-  stroke: #f7f8fa;
-  stroke-linecap: round;
-  stroke-width: 3;
 }
 
 .water-store-badges strong {

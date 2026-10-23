@@ -253,6 +253,7 @@ function WaterIcon({ name, className = '' }) {
     tip: <><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" /></>,
     check: <path d="m5 12 4 4L19 6" />,
     peso: <><path d="M8 21V4h5a4 4 0 0 1 0 8H8M5 8h10M5 11h10" /></>,
+    search: <><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.5 4.5" /></>,
   };
 
   return (
@@ -492,6 +493,7 @@ export default function WaterBillInquiry() {
                       />
                       {error && <p className="water-error" role="alert">{error}</p>}
                       <button className="water-primary-button" type="submit" disabled={loading}>
+                        <WaterIcon name="search" />
                         {loading ? 'Searching...' : 'View my bill'}
                       </button>
                       {loading && (
@@ -632,8 +634,8 @@ export default function WaterBillInquiry() {
                   </div>
                   <div className="water-store-badge">
                     <svg className="water-store-icon water-app-store-icon" viewBox="0 0 40 40" aria-hidden="true">
-                      <path d="M20 7 7 32h5l8-15 8 15h5L20 7Z" />
-                      <path d="M13 25h14" />
+                      <path d="M20 14.2c-1.7 0-3.2-1.2-5.8-1.2-4 0-7.3 3.5-7.3 9.1 0 6 4.8 15.2 8.7 15.2 1.7 0 2.7-1.1 4.5-1.1s2.8 1.1 4.5 1.1c3.2 0 7.2-5.8 8.4-10.3-4.4-1.8-5.6-7.3-.6-9.8-1.4-1.7-3.4-2.8-5.6-2.8-2.7 0-4.4 1.6-6.8 1.6Z" />
+                      <path d="M20.7 11.7c-.1-2.1.9-4.4 2.4-5.9 1.3-1.3 3.4-2.1 5.2-2.2.2 2.1-.6 4.3-2.1 5.9-1.3 1.5-3.5 2.4-5.5 2.2Z" />
                     </svg>
                     <span>Coming soon on<strong>App Store</strong></span>
                   </div>
