@@ -13,7 +13,7 @@
   overflow-x: clip;
   background: #f0f2f5;
   color: var(--ink);
-  font: 15px/1.5 "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font: 16px/1.5 "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   text-align: left;
 }
 
@@ -331,7 +331,7 @@
   overflow: hidden;
   max-width: 45%;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -362,7 +362,7 @@
 .water-intro p {
   margin: 0;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .water-home-content {
@@ -394,7 +394,7 @@
 .water-search-card label {
   margin-top: 3px;
   color: #4b4f56;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 650;
 }
 
@@ -489,14 +489,14 @@
 .water-panel h2 {
   margin: 0;
   color: var(--ink);
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
 }
 
 .water-info-card p {
   margin: 4px 0 0;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.5;
 }
 
@@ -650,7 +650,7 @@
 .water-bill-details dd {
   margin: 2px 0 0;
   color: var(--ink);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
 }
 
@@ -680,13 +680,13 @@
 
 .water-bill-heading strong {
   color: var(--ink);
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .water-bill-heading div > span {
   margin-top: 2px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .water-status {
@@ -750,7 +750,7 @@
 .water-no-bills {
   margin: 5px 0 14px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .water-filters {
@@ -769,7 +769,7 @@
   color: #4b4f56;
   cursor: pointer;
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 650;
 }
 
@@ -816,7 +816,7 @@
 .water-help-card p {
   margin: 0;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.5;
 }
 
