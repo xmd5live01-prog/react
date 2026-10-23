@@ -36,9 +36,9 @@ jobs:
         working-directory: my-app
         run: npm run build
         env:
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_URL: https://hyxotymypbmkyzghwspj.supabase.co
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_BILL_API_URL: ${{ vars.VITE_BILL_API_URL }}
+          VITE_BILL_API_URL: https://hyxotymypbmkyzghwspj.supabase.co/functions/v1/get-water-bill
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
