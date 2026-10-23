@@ -462,7 +462,7 @@ export default function WaterBillInquiry() {
                 <>
                   <div className="water-intro">
                     <h1>Check your water bill</h1>
-                    <p>Enter your Customer ID and the first 2 letters of your last name to view your bill.</p>
+                    <p>Check your water bill, view your billing history, and pay online via bank transfer.</p>
                   </div>
                   <div className="water-home-content">
                     <form className="water-search-card" onSubmit={searchAccount}>
@@ -603,7 +603,7 @@ export default function WaterBillInquiry() {
 
           {tab === 'pay' && (
             <section className="water-tab-content">
-              <InfoCard title="How to pay">Pay at our office or through our accredited payment partners.</InfoCard>
+              <InfoCard title="How to pay">Pay online by bank transfer, at our office, or through our accredited payment partners.</InfoCard>
               {account && (
                 <div className="water-payment-summary">
                   Amount due: <strong>{peso(totals.outstanding)}</strong><br />
@@ -621,8 +621,22 @@ export default function WaterBillInquiry() {
                 <h2>Our mobile app is on the way</h2>
                 <p>Check your water bills, view your billing history, and stay on top of due dates right from your phone.</p>
                 <div className="water-store-badges">
-                  <div>Coming soon on<strong>Google Play</strong></div>
-                  <div>Coming soon on the<strong>App Store</strong></div>
+                  <div className="water-store-badge">
+                    <svg className="water-store-icon water-google-play-icon" viewBox="0 0 48 48" aria-hidden="true">
+                      <path fill="#34A853" d="M5.2 3.5C4.4 4.3 4 5.4 4 6.8v34.4c0 1.4.4 2.5 1.2 3.3L25 24 5.2 3.5Z" />
+                      <path fill="#FBBC04" d="M5.2 3.5 29.5 17.4 22.8 24 5.2 3.5Z" />
+                      <path fill="#EA4335" d="M5.2 44.5 22.8 24l6.7 6.6L5.2 44.5Z" />
+                      <path fill="#4285F4" d="m22.8 24 6.7-6.6 9.9 5.7c2.1 1.2 2.1 2.6 0 3.8l-9.9 5.7-6.7-6.6Z" />
+                    </svg>
+                    <span>Coming soon on<strong>Google Play</strong></span>
+                  </div>
+                  <div className="water-store-badge">
+                    <svg className="water-store-icon water-app-store-icon" viewBox="0 0 40 40" aria-hidden="true">
+                      <path d="M20 7 7 32h5l8-15 8 15h5L20 7Z" />
+                      <path d="M13 25h14" />
+                    </svg>
+                    <span>Coming soon on<strong>App Store</strong></span>
+                  </div>
                 </div>
               </div>
               <p className="water-copyright">© {new Date().getFullYear()} Hinunangan Water System</p>
