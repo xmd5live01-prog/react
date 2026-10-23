@@ -505,12 +505,28 @@ export default function WaterBillInquiry() {
                 </>
               ) : (
                 <>
-                  <div className="water-balance">
-                    <p>{account.customer.name} · ID {account.customer.customerId}</p>
-                    <span>Total amount due</span>
-                    <strong>{peso(totals.outstanding)}</strong>
-                    <p>{totals.nextDue ? `Next due ${dateLabel(totals.nextDue.dueDate)}` : 'You have no balance. Thank you!'}</p>
-                  </div>
+                  <section className="water-balance" aria-label="Account balance summary">
+                    <div className="water-balance-identity">
+                      <span className="water-balance-avatar" aria-hidden="true">
+                        {account.customer.name.slice(0, 1)}
+                      </span>
+                      <div className="water-balance-customer">
+                        <span className="water-balance-eyebrow">Customer account</span>
+                        <strong className="water-balance-name">{account.customer.name}</strong>
+                        <span className="water-balance-id">Customer ID <b>{account.customer.customerId}</b></span>
+                      </div>
+                    </div>
+                    <div className="water-balance-financial">
+                      <div className="water-balance-amount">
+                        <span>Total amount due</span>
+                        <strong>{peso(totals.outstanding)}</strong>
+                      </div>
+                      <div className="water-balance-next-due">
+                        <span>{totals.nextDue ? 'Next due' : 'Payment status'}</span>
+                        <strong>{totals.nextDue ? dateLabel(totals.nextDue.dueDate) : 'No balance due'}</strong>
+                      </div>
+                    </div>
+                  </section>
                   <div className="water-home-content water-account-content">
                     <div className="water-stats">
                       <div><strong>{totals.openCount}</strong><span>Open</span></div>

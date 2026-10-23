@@ -503,33 +503,105 @@
 
 .water-balance {
   display: grid;
-  gap: 3px;
-  padding: 17px 19px;
+  grid-template-columns: minmax(0, 1fr) minmax(235px, auto);
+  align-items: center;
+  gap: 22px;
+  padding: 20px 22px;
+  border-left: 4px solid var(--blue);
 }
 
-.water-balance p {
-  margin: 0;
-  color: var(--muted);
-  font-size: calc(13px * var(--font-scale));
+.water-balance-identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 14px;
 }
 
-.water-balance p:first-child {
-  color: var(--ink);
+.water-balance-avatar {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  place-items: center;
+  border-radius: 8px;
+  background: #e7f3ff;
+  color: var(--blue);
+  font-family: "Manrope", "DM Sans", sans-serif;
   font-size: calc(20px * var(--font-scale));
+  font-weight: 700;
+}
+
+.water-balance-customer {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.water-balance-eyebrow {
+  color: var(--muted);
+  font-size: calc(11px * var(--font-scale));
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.water-balance-name {
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-family: "Manrope", "DM Sans", sans-serif;
+  font-size: calc(20px * var(--font-scale));
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+.water-balance-id {
+  color: var(--muted);
+  font-size: calc(14px * var(--font-scale));
+}
+
+.water-balance-id b {
+  color: var(--ink);
+  font-weight: 650;
+}
+
+.water-balance-financial {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 18px;
+  padding-left: 22px;
+  border-left: 1px solid var(--line);
+}
+
+.water-balance-amount,
+.water-balance-next-due {
+  display: grid;
+  gap: 4px;
+}
+
+.water-balance-amount span,
+.water-balance-next-due span {
+  color: var(--muted);
+  font-size: calc(12px * var(--font-scale));
   font-weight: 600;
 }
 
-.water-balance span {
-  color: var(--muted);
-  font-size: calc(13px * var(--font-scale));
-}
-
-.water-balance strong {
+.water-balance-amount strong {
   color: var(--ink);
   font-size: 32px;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
   line-height: 1.25;
+}
+
+.water-balance-next-due {
+  min-width: 102px;
+  text-align: right;
+}
+
+.water-balance-next-due strong {
+  color: var(--ink);
+  font-size: calc(14px * var(--font-scale));
+  font-weight: 700;
 }
 
 .water-account-content {
@@ -1017,6 +1089,28 @@
   .water-page-heading {
     min-height: 55px;
     padding: 0 3px 10px;
+  }
+
+  .water-balance {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 17px;
+  }
+
+  .water-balance-financial {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    padding: 13px 0 0;
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+
+  .water-balance-amount strong {
+    font-size: 32px;
+  }
+
+  .water-balance-next-due {
+    min-width: 0;
   }
 
   .water-page-heading h1 {
