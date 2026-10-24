@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { color-scheme: light; }
+  body { @apply font-sans text-[#1c1e21] bg-[#f0f2f5]; margin: 0; }
+  :focus-visible { outline: 3px solid #0866ff; outline-offset: 3px; }
+}
+
+@layer components {
+  .hero-bg {
+    background:
+      radial-gradient(1200px 600px at 80% 20%, #4d91ff 0%, transparent 60%),
+      linear-gradient(160deg, #0755d4, #0866ff);
+  }
+  .hero-photo {
+    position: absolute; top: 0; left: 0; right: 0; height: 640px;
+    background-position: center; background-size: cover; background-repeat: no-repeat;
+    opacity: .3; mix-blend-mode: luminosity; pointer-events: none;
+    -webkit-mask-image: linear-gradient(transparent, #000 28%, #000 72%, transparent);
+    mask-image: linear-gradient(transparent, #000 28%, #000 72%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

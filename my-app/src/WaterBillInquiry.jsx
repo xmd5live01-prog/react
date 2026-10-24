@@ -1,21 +1,108 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import './WaterBillInquiry.css';
 
 const EMPTY_BILLS = [];
 const LOOKUP_STORAGE_KEY = 'water-bill-lookup-session';
+const LOOKUP_SESSION_TTL_MS = 15 * 60 * 1000;
+const BILLING_API_URL = import.meta.env.VITE_BILL_API_URL;
+const REMOTE_BILL_LOOKUP_ENABLED = Boolean(
+  BILLING_API_URL && !BILLING_API_URL.includes('your-project'),
+);
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY;
+let turnstileScriptPromise;
+
+function loadTurnstile() {
+  if (window.turnstile) return Promise.resolve(window.turnstile);
+  if (turnstileScriptPromise) return turnstileScriptPromise;
+
+  turnstileScriptPromise = new Promise((resolve, reject) => {
+    let script = document.querySelector('script[data-turnstile-script]');
+    if (!script) {
+      script = document.createElement('script');
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      script.async = true;
+      script.defer = true;
+      script.dataset.turnstileScript = 'true';
+      document.head.append(script);
+    }
+
+    script.addEventListener('load', () => {
+      if (window.turnstile) resolve(window.turnstile);
+      else reject(new Error('The verification challenge did not load.'));
+    }, { once: true });
+    script.addEventListener('error', () => {
+      reject(new Error('Unable to load the verification challenge.'));
+    }, { once: true });
+  });
+
+  return turnstileScriptPromise;
+}
+
+function TurnstileChallenge({ onTokenChange }) {
+  const containerRef = useRef(null);
+  const [challengeError, setChallengeError] = useState('');
+
+  useEffect(() => {
+    let disposed = false;
+    let widgetId;
+
+    loadTurnstile()
+      .then((turnstile) => {
+        if (disposed || !containerRef.current) return;
+        widgetId = turnstile.render(containerRef.current, {
+          sitekey: TURNSTILE_SITE_KEY,
+          callback: (token) => {
+            setChallengeError('');
+            onTokenChange(token);
+          },
+          'expired-callback': () => onTokenChange(''),
+          'error-callback': () => {
+            onTokenChange('');
+            setChallengeError('Verification could not be completed. Please retry.');
+          },
+        });
+      })
+      .catch((error) => {
+        if (!disposed) {
+          setChallengeError(error instanceof Error ? error.message : 'Unable to load verification.');
+        }
+      });
+
+    return () => {
+      disposed = true;
+      if (widgetId !== undefined && window.turnstile) {
+        window.turnstile.remove(widgetId);
+      }
+    };
+  }, [onTokenChange]);
+
+  return (
+    <div className="water-turnstile">
+      <div ref={containerRef} />
+      {challengeError && <p className="water-error" role="alert">{challengeError}</p>}
+    </div>
+  );
+}
 
 function readLookupSession() {
   try {
     const saved = JSON.parse(sessionStorage.getItem(LOOKUP_STORAGE_KEY) ?? 'null');
     const hasAccount = saved?.account?.customer && Array.isArray(saved.account.bills);
+    const expiresAt = Number(saved?.expiresAt);
+
+    if (!hasAccount || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+      sessionStorage.removeItem(LOOKUP_STORAGE_KEY);
+      return { account: null, tab: 'home', filter: 'All', expiresAt: null };
+    }
 
     return {
-      account: hasAccount ? saved.account : null,
+      account: saved.account,
       tab: ['home', 'bills', 'pay', 'help'].includes(saved?.tab) ? saved.tab : 'home',
       filter: ['All', 'Unpaid', 'Overdue', 'Paid'].includes(saved?.filter) ? saved.filter : 'All',
+      expiresAt,
     };
   } catch {
-    return { account: null, tab: 'home', filter: 'All' };
+    return { account: null, tab: 'home', filter: 'All', expiresAt: null };
   }
 }
 
@@ -144,10 +231,8 @@ const accounts = [
   },
 ];
 
-async function fetchBills(customerId, lastNameLetters) {
-  const billingApiUrl = import.meta.env.VITE_BILL_API_URL;
-
-  if (!billingApiUrl || billingApiUrl.includes('your-project')) {
+async function fetchBills(customerId, lastNameLetters, captchaToken) {
+  if (!REMOTE_BILL_LOOKUP_ENABLED) {
     await new Promise((resolve) => setTimeout(resolve, 700));
     return (
       accounts.find(
@@ -160,18 +245,17 @@ async function fetchBills(customerId, lastNameLetters) {
   }
 
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  const response = await fetch(
-    `${billingApiUrl}?customerId=${encodeURIComponent(customerId)}&lastNameLetters=${encodeURIComponent(lastNameLetters)}`,
-    {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        apikey: anonKey,
-        Authorization: `Bearer ${anonKey}`,
-      },
-      cache: 'no-store',
+  const response = await fetch(BILLING_API_URL, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      apikey: anonKey,
+      Authorization: `Bearer ${anonKey}`,
     },
-  );
+    body: JSON.stringify({ customerId, lastNameLetters, captchaToken }),
+    cache: 'no-store',
+  });
 
   if (response.status === 404) return null;
   if (!response.ok) {
@@ -250,6 +334,7 @@ function WaterIcon({ name, className = '' }) {
     receipt: <><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z" /><path d="M9 8h6M9 12h6M9 16h3" /></>,
     pay: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18M7 15h4" /></>,
     help: <><circle cx="12" cy="12" r="9" /><path d="M9.7 9a2.4 2.4 0 1 1 3.8 1.9c-1 .7-1.5 1.1-1.5 2.6M12 17h.01" /></>,
+    menu: <><path d="M4 6h16M4 12h16M4 18h16" /></>,
     tip: <><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" /></>,
     check: <path d="m5 12 4 4L19 6" />,
     peso: <><path d="M8 21V4h5a4 4 0 0 1 0 8H8M5 8h10M5 11h10" /></>,
@@ -272,22 +357,28 @@ function WaterIcon({ name, className = '' }) {
   );
 }
 
-export default function WaterBillInquiry() {
+export default function WaterBillInquiry({ onBack }) {
   const [savedSession] = useState(readLookupSession);
   const [customerId, setCustomerId] = useState('');
   const [lastNameLetters, setLastNameLetters] = useState('');
+  const [sessionExpiresAt, setSessionExpiresAt] = useState(savedSession.expiresAt);
+  const [captchaToken, setCaptchaToken] = useState('');
+  const [captchaReset, setCaptchaReset] = useState(0);
   const [account, setAccount] = useState(savedSession.account);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [tab, setTab] = useState(savedSession.tab);
   const [filter, setFilter] = useState(savedSession.filter);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const cancelLogoutRef = useRef(null);
 
   useEffect(() => {
     try {
       if (account) {
         sessionStorage.setItem(
           LOOKUP_STORAGE_KEY,
-          JSON.stringify({ account, tab, filter }),
+          JSON.stringify({ account, tab, filter, expiresAt: sessionExpiresAt }),
         );
       } else {
         sessionStorage.removeItem(LOOKUP_STORAGE_KEY);
@@ -295,7 +386,38 @@ export default function WaterBillInquiry() {
     } catch {
       // Storage may be unavailable in private browsing or restricted contexts.
     }
-  }, [account, tab, filter]);
+  }, [account, tab, filter, sessionExpiresAt]);
+
+  useEffect(() => {
+    if (!account || !sessionExpiresAt) return undefined;
+
+    const timeout = window.setTimeout(() => {
+      try {
+        sessionStorage.removeItem(LOOKUP_STORAGE_KEY);
+      } catch {
+        // Continue ending the in-memory session if storage is unavailable.
+      }
+      setAccount(null);
+      setSessionExpiresAt(null);
+      setFilter('All');
+      setTab('home');
+      setError('Your lookup session expired. Enter your details to search again.');
+    }, Math.max(0, sessionExpiresAt - Date.now()));
+
+    return () => window.clearTimeout(timeout);
+  }, [account, sessionExpiresAt]);
+
+  useEffect(() => {
+    if (!logoutConfirmOpen) return undefined;
+
+    cancelLogoutRef.current?.focus();
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') setLogoutConfirmOpen(false);
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [logoutConfirmOpen]);
 
   const bills = (account?.bills ?? EMPTY_BILLS).slice(0, 6);
   const totals = useMemo(() => {
@@ -329,16 +451,21 @@ export default function WaterBillInquiry() {
       setError('Please enter the first 2 letters of your last name.');
       return;
     }
+    if (TURNSTILE_SITE_KEY && !captchaToken) {
+      setError('Please complete the verification challenge.');
+      return;
+    }
 
     setLoading(true);
     setAccount(null);
     setFilter('All');
     try {
-      const result = await fetchBills(normalizedId, normalizedLetters);
+      const result = await fetchBills(normalizedId, normalizedLetters, captchaToken);
       if (!result) {
         setError('No account found. Check your Customer ID and last name.');
         return;
       }
+      setSessionExpiresAt(Date.now() + LOOKUP_SESSION_TTL_MS);
       setAccount(result);
       setTab('home');
     } catch (requestError) {
@@ -350,6 +477,10 @@ export default function WaterBillInquiry() {
       );
     } finally {
       setLoading(false);
+      if (TURNSTILE_SITE_KEY) {
+        setCaptchaToken('');
+        setCaptchaReset((value) => value + 1);
+      }
     }
   }
 
@@ -360,11 +491,19 @@ export default function WaterBillInquiry() {
       // Continue clearing the in-memory state if storage is unavailable.
     }
     setAccount(null);
+    setSessionExpiresAt(null);
     setCustomerId('');
     setLastNameLetters('');
+    setCaptchaToken('');
     setError('');
     setFilter('All');
     setTab('home');
+  }
+
+  function confirmLogout() {
+    setMobileMenuOpen(false);
+    setLogoutConfirmOpen(false);
+    clearSearch();
   }
 
   const tabTitles = {
@@ -373,6 +512,12 @@ export default function WaterBillInquiry() {
     pay: 'Payment channels',
     help: 'Help & support',
   };
+  const navigationItems = [
+    ['home', 'search', 'Search Bill'],
+    ['bills', 'receipt', 'Billing history'],
+    ['pay', 'pay', 'Payment channels'],
+    ['help', 'help', 'Help & support'],
+  ];
 
   return (
     <div className="water-app">
@@ -399,9 +544,64 @@ export default function WaterBillInquiry() {
           ))}
         </nav>
         <div className="water-header-actions">
+          {account && (
+            <button className="water-logout-button" type="button" onClick={() => setLogoutConfirmOpen(true)}>
+              Log out
+            </button>
+          )}
+          <button className="water-home-button" type="button" onClick={onBack}>
+            Main page
+          </button>
           <span className="water-avatar" aria-label="Hinunangan Water System account">
             <WaterIcon name="drop" />
           </span>
+          <div className="water-mobile-menu">
+            <button
+              className="water-menu-button"
+              type="button"
+              aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="water-mobile-navigation"
+              onClick={() => setMobileMenuOpen((open) => !open)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') setMobileMenuOpen(false);
+              }}
+            >
+              <WaterIcon name="menu" />
+            </button>
+            {mobileMenuOpen && (
+              <nav
+                id="water-mobile-navigation"
+                className="water-mobile-navigation"
+                aria-label="Mobile navigation"
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') setMobileMenuOpen(false);
+                }}
+              >
+                {navigationItems.map(([id, icon, label]) => (
+                  <button
+                    className={tab === id ? 'active' : ''}
+                    key={id}
+                    type="button"
+                    aria-current={tab === id ? 'page' : undefined}
+                    onClick={() => {
+                      setTab(id);
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <WaterIcon name={icon} />{label}
+                  </button>
+                ))}
+                <button
+                  className="water-mobile-main-page"
+                  type="button"
+                  onClick={onBack}
+                >
+                  <WaterIcon name="home" />Main page
+                </button>
+              </nav>
+            )}
+          </div>
         </div>
       </header>
 
@@ -441,21 +641,14 @@ export default function WaterBillInquiry() {
         </aside>
 
         <main className="water-main">
-          <div className="water-page-heading">
-            <div>
-              <span>WATER DISTRICT PORTAL</span>
-              <h1>{tabTitles[tab]}</h1>
+          {(tab !== 'home' || account) && (
+            <div className="water-page-heading">
+              <div>
+                <span>WATER DISTRICT PORTAL</span>
+                <h1>{tabTitles[tab]}</h1>
+              </div>
             </div>
-            {account && (
-              <button
-                className="water-page-new-search"
-                type="button"
-                onClick={clearSearch}
-              >
-                New search
-              </button>
-            )}
-          </div>
+          )}
           <div className="water-content">
           {tab === 'home' && (
             <section>
@@ -491,8 +684,21 @@ export default function WaterBillInquiry() {
                           setError('');
                         }}
                       />
+                      {TURNSTILE_SITE_KEY && (
+                        <TurnstileChallenge
+                          key={captchaReset}
+                          onTokenChange={setCaptchaToken}
+                        />
+                      )}
                       {error && <p className="water-error" role="alert">{error}</p>}
-                      <button className="water-primary-button" type="submit" disabled={loading}>
+                      <button
+                        className="water-primary-button"
+                        type="submit"
+                        disabled={
+                          loading ||
+                          (Boolean(TURNSTILE_SITE_KEY) && !captchaToken)
+                        }
+                      >
                         <WaterIcon name="search" />
                         {loading ? 'Searching...' : 'View my bill'}
                       </button>
@@ -622,24 +828,6 @@ export default function WaterBillInquiry() {
                 <span>Coming soon</span>
                 <h2>Our mobile app is on the way</h2>
                 <p>Check your water bills, view your billing history, and stay on top of due dates right from your phone.</p>
-                <div className="water-store-badges">
-                  <div className="water-store-badge">
-                    <svg className="water-store-icon water-google-play-icon" viewBox="0 0 48 48" aria-hidden="true">
-                      <path fill="#34A853" d="M5.2 3.5C4.4 4.3 4 5.4 4 6.8v34.4c0 1.4.4 2.5 1.2 3.3L25 24 5.2 3.5Z" />
-                      <path fill="#FBBC04" d="M5.2 3.5 29.5 17.4 22.8 24 5.2 3.5Z" />
-                      <path fill="#EA4335" d="M5.2 44.5 22.8 24l6.7 6.6L5.2 44.5Z" />
-                      <path fill="#4285F4" d="m22.8 24 6.7-6.6 9.9 5.7c2.1 1.2 2.1 2.6 0 3.8l-9.9 5.7-6.7-6.6Z" />
-                    </svg>
-                    <span>Coming soon on<strong>Google Play</strong></span>
-                  </div>
-                  <div className="water-store-badge">
-                    <svg className="water-store-icon water-app-store-icon" viewBox="0 0 40 40" aria-hidden="true">
-                      <path d="M20 14.2c-1.7 0-3.2-1.2-5.8-1.2-4 0-7.3 3.5-7.3 9.1 0 6 4.8 15.2 8.7 15.2 1.7 0 2.7-1.1 4.5-1.1s2.8 1.1 4.5 1.1c3.2 0 7.2-5.8 8.4-10.3-4.4-1.8-5.6-7.3-.6-9.8-1.4-1.7-3.4-2.8-5.6-2.8-2.7 0-4.4 1.6-6.8 1.6Z" />
-                      <path d="M20.7 11.7c-.1-2.1.9-4.4 2.4-5.9 1.3-1.3 3.4-2.1 5.2-2.2.2 2.1-.6 4.3-2.1 5.9-1.3 1.5-3.5 2.4-5.5 2.2Z" />
-                    </svg>
-                    <span>Coming soon on<strong>App Store</strong></span>
-                  </div>
-                </div>
               </div>
               <p className="water-copyright">© {new Date().getFullYear()} Hinunangan Water System</p>
             </section>
@@ -674,24 +862,68 @@ export default function WaterBillInquiry() {
         </aside>
       </div>
 
-      <nav className="water-tabs" aria-label="Mobile navigation">
-        {[
-          ['home', 'home', 'Home'],
-          ['bills', 'receipt', 'Bills'],
-          ['pay', 'pay', 'Pay'],
-          ['help', 'help', 'Help'],
-        ].map(([id, icon, label]) => (
-          <button
-            className={tab === id ? 'active' : ''}
-            key={id}
-            type="button"
-            aria-current={tab === id ? 'page' : undefined}
-            onClick={() => setTab(id)}
+      <footer className="water-app-footer" aria-label="Mobile app availability">
+        <div className="water-store-badges">
+          <div className="water-store-badge">
+            <svg className="water-store-icon water-google-play-icon" viewBox="0 0 48 48" aria-hidden="true">
+              <path fill="#34A853" d="M5.2 3.5C4.4 4.3 4 5.4 4 6.8v34.4c0 1.4.4 2.5 1.2 3.3L25 24 5.2 3.5Z" />
+              <path fill="#FBBC04" d="M5.2 3.5 29.5 17.4 22.8 24 5.2 3.5Z" />
+              <path fill="#EA4335" d="M5.2 44.5 22.8 24l6.7 6.6L5.2 44.5Z" />
+              <path fill="#4285F4" d="m22.8 24 6.7-6.6 9.9 5.7c2.1 1.2 2.1 2.6 0 3.8l-9.9 5.7-6.7-6.6Z" />
+            </svg>
+            <span>Coming soon on<strong>Google Play</strong></span>
+          </div>
+          <div className="water-store-badge">
+            <svg className="water-store-icon water-app-store-icon" viewBox="0 0 40 40" aria-hidden="true">
+              <path d="M20 14.2c-1.7 0-3.2-1.2-5.8-1.2-4 0-7.3 3.5-7.3 9.1 0 6 4.8 15.2 8.7 15.2 1.7 0 2.7-1.1 4.5-1.1s2.8 1.1 4.5 1.1c3.2 0 7.2-5.8 8.4-10.3-4.4-1.8-5.6-7.3-.6-9.8-1.4-1.7-3.4-2.8-5.6-2.8-2.7 0-4.4 1.6-6.8 1.6Z" />
+              <path d="M20.7 11.7c-.1-2.1.9-4.4 2.4-5.9 1.3-1.3 3.4-2.1 5.2-2.2.2 2.1-.6 4.3-2.1 5.9-1.3 1.5-3.5 2.4-5.5 2.2Z" />
+            </svg>
+            <span>Coming soon on<strong>App Store</strong></span>
+          </div>
+        </div>
+      </footer>
+
+      {logoutConfirmOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1c1e21]/55 p-4 backdrop-blur-sm"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setLogoutConfirmOpen(false);
+          }}
+        >
+          <section
+            aria-labelledby="logout-dialog-title"
+            aria-describedby="logout-dialog-description"
+            aria-modal="true"
+            className="w-full max-w-[420px] rounded-2xl border border-[#e4e6eb] bg-white p-6 text-[#1c1e21] shadow-[0_24px_70px_rgba(0,0,0,.28)]"
+            role="alertdialog"
           >
-            <WaterIcon name={icon} />{label}
-          </button>
-        ))}
-      </nav>
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#e7f3ff] text-[#0866ff]">
+              <WaterIcon name="drop" />
+            </div>
+            <h2 className="m-0 text-xl font-bold" id="logout-dialog-title">Log out?</h2>
+            <p className="mb-6 mt-2 text-sm leading-relaxed text-[#65676b]" id="logout-dialog-description">
+              Are you sure you want to log out? Your bill lookup session will end.
+            </p>
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                className="min-h-11 rounded-lg border border-[#e4e6eb] bg-white px-4 py-2 font-semibold text-[#1c1e21] transition hover:bg-[#f0f2f5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0866ff]"
+                onClick={() => setLogoutConfirmOpen(false)}
+                ref={cancelLogoutRef}
+                type="button"
+              >
+                Cancel
+              </button>
+              <button
+                className="min-h-11 rounded-lg bg-[#0866ff] px-4 py-2 font-semibold text-white transition hover:bg-[#0755d4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0866ff]"
+                onClick={confirmLogout}
+                type="button"
+              >
+                Yes, log out
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

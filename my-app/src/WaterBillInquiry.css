@@ -43,6 +43,84 @@
   box-shadow: 0 1px 2px rgb(0 0 0 / 7%);
 }
 
+.water-mobile-menu {
+  display: none;
+}
+
+.water-menu-button {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.water-menu-button .water-icon {
+  width: 21px;
+  height: 21px;
+}
+
+.water-mobile-navigation {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 8px);
+  right: 0;
+  display: grid;
+  width: min(250px, calc(100vw - 24px));
+  gap: 3px;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgb(28 30 33 / 16%);
+}
+
+.water-mobile-navigation button {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.water-mobile-navigation button.active {
+  background: #e7f3ff;
+  color: var(--blue);
+}
+
+.water-mobile-navigation button:not(.water-mobile-main-page):hover {
+  background: #e7f3ff;
+  color: var(--blue);
+}
+
+.water-mobile-navigation .water-mobile-main-page {
+  margin-top: 4px;
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 7px 7px;
+  color: var(--ink);
+}
+
+.water-mobile-navigation .water-mobile-main-page:hover {
+  background: #f2f3f5;
+  color: var(--ink);
+}
+
+.water-mobile-navigation .water-icon {
+  width: 20px;
+  height: 20px;
+}
+
 .water-brand {
   display: flex;
   min-width: 0;
@@ -132,6 +210,30 @@
   gap: 12px;
 }
 
+.water-home-button,
+.water-logout-button {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--blue);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.water-logout-button {
+  color: #b42318;
+}
+
+.water-home-button:hover,
+.water-logout-button:hover {
+  background: #f2f3f5;
+}
+
 .water-avatar {
   display: grid;
   width: clamp(32px, 9vw, 38px);
@@ -175,7 +277,7 @@
   grid-template-columns: minmax(220px, 1fr) minmax(450px, 680px) minmax(250px, 1fr);
   gap: 28px;
   margin: 0 auto;
-  padding: 24px 26px 48px;
+  padding: 24px 26px 104px;
 }
 
 .water-sidebar {
@@ -919,14 +1021,15 @@
 .water-store-badge {
   display: flex;
   min-width: 0;
-  min-height: 64px;
+  min-height: 54px;
   align-items: center;
+  justify-content: center;
   gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  background: #f7f8fa;
-  color: var(--muted);
+  padding: 7px 12px;
+  border: 1px solid #333;
+  border-radius: 12px;
+  background: #080808;
+  color: #fff;
   font-size: calc(10px * var(--font-scale));
   line-height: 1.35;
 }
@@ -948,9 +1051,27 @@
 
 .water-store-badges strong {
   display: block;
-  color: var(--ink);
+  color: #fff;
   font-size: calc(13px * var(--font-scale));
   font-weight: 700;
+}
+
+.water-app-footer {
+  position: fixed;
+  z-index: 8;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 8px 16px calc(8px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid rgb(255 255 255 / 18%);
+  background: rgb(8 102 255 / 92%);
+  box-shadow: 0 -2px 12px rgb(28 30 33 / 10%);
+  backdrop-filter: blur(16px);
+}
+
+.water-app-footer .water-store-badges {
+  width: min(460px, 100%);
+  margin: 0 auto;
 }
 
 .water-copyright {
@@ -1038,10 +1159,6 @@
   line-height: 1.8;
 }
 
-.water-tabs {
-  display: none;
-}
-
 @media (max-width: 1050px) {
   .water-layout {
     grid-template-columns: minmax(175px, 220px) minmax(400px, 680px);
@@ -1094,8 +1211,28 @@
     display: none;
   }
 
+  .water-mobile-menu {
+    position: relative;
+    display: block;
+  }
+
   .water-header-actions {
-    gap: 0;
+    gap: 8px;
+  }
+
+  .water-header-actions > .water-avatar {
+    display: none;
+  }
+
+  .water-home-button,
+  .water-logout-button {
+    min-height: 34px;
+    padding: 6px 9px;
+    font-size: 12px;
+  }
+
+  .water-home-button {
+    display: none;
   }
 
   .water-avatar {
@@ -1111,7 +1248,7 @@
   .water-layout {
     display: block;
     min-height: calc(100dvh - 56px);
-    padding: 14px 12px calc(80px + env(safe-area-inset-bottom));
+    padding: 14px 12px calc(90px + env(safe-area-inset-bottom));
   }
 
   .water-sidebar {
@@ -1170,43 +1307,29 @@
     padding: 15px;
   }
 
-  .water-tabs {
-    position: fixed;
-    z-index: 5;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    padding: 6px 0 max(7px, env(safe-area-inset-bottom));
-    border-top: 1px solid var(--line);
-    background: #fff;
-    box-shadow: 0 -1px 4px rgb(0 0 0 / 5%);
+  .water-app-footer {
+    padding-right: 10px;
+    padding-left: 10px;
   }
 
-  .water-tabs button {
-    display: flex;
-    min-height: 44px;
-    flex-direction: column;
-    align-items: center;
-    gap: 1px;
-    padding: 2px 0;
-    border: 0;
-    background: transparent;
-    color: #65676b;
-    cursor: pointer;
-    font: inherit;
+  .water-app-footer .water-store-badges {
+    gap: 8px;
+  }
+
+  .water-store-badge {
+    gap: 7px;
+    padding: 6px 8px;
+    font-size: calc(9px * var(--font-scale));
+  }
+
+  .water-store-icon {
+    width: 25px;
+    height: 25px;
+    flex-basis: 25px;
+  }
+
+  .water-store-badges strong {
     font-size: calc(11px * var(--font-scale));
-    font-weight: 600;
-  }
-
-  .water-tabs .water-icon {
-    width: clamp(19px, 6vw, 22px);
-    height: clamp(19px, 6vw, 22px);
-  }
-
-  .water-tabs button.active {
-    color: var(--blue);
   }
 }
 

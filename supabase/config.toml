@@ -1,0 +1,4 @@
+project_id = "hyxotymypbmkyzghwspj"
+
+[functions.get-water-bill]
+verify_jwt = true
