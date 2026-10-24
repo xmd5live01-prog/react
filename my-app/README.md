@@ -34,16 +34,16 @@ The site key is public; never put the Turnstile secret or Supabase service-role 
 
 ## Website content management
 
-The invite-only CMS is available at `https://xmd5live01-prog.github.io/wbs/#/admin` (or by choosing **Admin** in the landing-page navigation). It uses Supabase Auth and the public anon key already supplied to the GitHub Pages build. The approved administrator email is `xmd5live01@gmail.com`; no password is stored in this repository.
+The invite-only CMS is available at `https://xmd5live01-prog.github.io/wbs/#/admin` (or by choosing **Admin** in the landing-page navigation). It uses Supabase Auth and the public anon key already supplied to the GitHub Pages build. The approved administrator emails are `xmd5live01@gmail.com` and `mangjapli30@gmail.com`; no passwords are stored in this repository.
 
 Before signing in for the first time:
 
 1. From the repository root, link the Supabase project with `npx supabase link --project-ref hyxotymypbmkyzghwspj` if it is not linked already, then apply the migration with `npx supabase db push`.
-2. In the Supabase dashboard, invite `xmd5live01@gmail.com` under **Authentication → Users** and finish the password setup using Supabase's invite flow.
+2. In the Supabase dashboard, invite each approved administrator under **Authentication → Users** and finish password setup using Supabase's invite flow.
 3. Confirm the GitHub Actions secret `VITE_SUPABASE_ANON_KEY` is configured, then deploy the app.
 
 Administrators can edit the hero slides, announcements, services, payment providers, steps, and shared page headings. Entries can be reordered or deactivated without being deleted. **Save draft** stores unpublished edits, **Preview** displays the draft in the current browser session, and **Publish** makes the saved content live while recording a revision. Restoring a revision only replaces the draft; publish it separately to make it public. Public visitors can read only the published version.
 
 If you do not have an administrator password yet, choose **Forgot password?** on the CMS sign-in page and follow the reset email to set one. In **Authentication → URL Configuration** in the Supabase dashboard, set the **Site URL** to `https://xmd5live01-prog.github.io/wbs/` and add `https://xmd5live01-prog.github.io/wbs/?cms-recovery=1` to **Redirect URLs**. The CMS always sends recovery links to this production callback, including when a reset is requested from a local development server.
 
-The CMS schema is defined in `supabase/migrations/20261025041000_add_site_cms.sql`. Do not expose a Supabase service-role key in the browser or GitHub Pages build; all administrator operations use the authenticated session and row-level security.
+The CMS schema and administrator allowlist are managed by the migrations in `supabase/migrations/`. Add administrators by creating a migration that inserts their lowercase email into `public.cms_admins`, then invite them separately through **Authentication → Users**. Do not expose a Supabase service-role key in the browser or GitHub Pages build; all administrator operations use the authenticated session and row-level security.
