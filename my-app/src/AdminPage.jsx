@@ -17,6 +17,15 @@ const PANELS = [
 const PASSWORD_RECOVERY_REDIRECT = "https://xmd5live01-prog.github.io/wbs/?cms-recovery=1";
 const GOOGLE_OAUTH_REDIRECT = "https://xmd5live01-prog.github.io/wbs/?cms-oauth=1";
 
+function getGoogleOAuthError() {
+  const query = new URLSearchParams(window.location.search);
+  const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const error = query.get("error") ?? fragment.get("error");
+  if (!error) return "";
+
+  return "Google sign-in could not be completed. In Supabase Authentication → Sign In / Providers → Google, verify that the Client ID and Client Secret belong to the same Google Web OAuth client. In Google Cloud, confirm the authorized redirect URI is https://hyxotymypbmkyzghwspj.supabase.co/auth/v1/callback. Then try again.";
+}
+
 const COLLECTIONS = {
   heroSlides: {
     title: "Hero slideshow",
@@ -209,7 +218,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
   const [loadingContent, setLoadingContent] = useState(false);
   const [contentLoaded, setContentLoaded] = useState(false);
   const [contentRetry, setContentRetry] = useState(0);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(getGoogleOAuthError);
   const [notice, setNotice] = useState("");
   const [panel, setPanel] = useState("overview");
   const [draft, setDraft] = useState(() => clone(DEFAULT_CMS_CONTENT));
@@ -217,7 +226,6 @@ export default function AdminPage({ onPreview, onPublicSite }) {
   const [published, setPublished] = useState(null);
   const [hasDraft, setHasDraft] = useState(false);
   const [dirty, setDirty] = useState(false);
-  const oauthCallback = new URLSearchParams(window.location.search).has("cms-oauth");
   const userId = session?.user?.id;
 
   useEffect(() => {
@@ -231,7 +239,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
       if (sessionError) setError(sessionError.message);
       setSession(data.session);
       setAuthChecked(true);
-      if (data.session && oauthCallback) {
+      if (new URLSearchParams(window.location.search).has("cms-oauth")) {
         window.history.replaceState(null, "", `${window.location.pathname}#/admin`);
       }
     }).catch((sessionError) => {
@@ -243,14 +251,14 @@ export default function AdminPage({ onPreview, onPublicSite }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
-      setError("");
+      if (nextSession || event === "SIGNED_OUT") setError("");
       if (event === "PASSWORD_RECOVERY") setPasswordRecovery(true);
     });
     return () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [oauthCallback]);
+  }, []);
 
   useEffect(() => {
     if (!userId) return undefined;
