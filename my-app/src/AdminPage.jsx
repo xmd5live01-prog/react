@@ -14,6 +14,8 @@ const PANELS = [
   ["revisions", "Revisions"],
 ];
 
+const PASSWORD_RECOVERY_REDIRECT = "https://xmd5live01-prog.github.io/wbs/?cms-recovery=1";
+
 const COLLECTIONS = {
   heroSlides: {
     title: "Hero slideshow",
@@ -306,8 +308,9 @@ export default function AdminPage({ onPreview, onPublicSite }) {
     setBusy(true);
     setError("");
     setNotice("");
-    const redirectTo = `${window.location.origin}${window.location.pathname}?cms-recovery=1`;
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: PASSWORD_RECOVERY_REDIRECT,
+    });
     if (resetError) setError(resetError.message);
     else setNotice("If that email is registered, a password reset link has been sent. Check your inbox.");
     setBusy(false);
