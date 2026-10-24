@@ -7,7 +7,8 @@ const WaterBillInquiry = lazy(() => import("./WaterBillInquiry"));
 const AdminPage = lazy(() => import("./AdminPage"));
 
 function getRoute() {
-  if (window.location.hash === "#/admin" || new URLSearchParams(window.location.search).has("cms-recovery")) return "admin";
+  const query = new URLSearchParams(window.location.search);
+  if (window.location.hash === "#/admin" || query.has("cms-recovery") || query.has("cms-oauth")) return "admin";
   if (window.location.hash === "#/preview") return "preview";
   return "public";
 }

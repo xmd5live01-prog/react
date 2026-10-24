@@ -879,6 +879,57 @@
   font-size: 12px;
 }
 
+.cms-google-button {
+  display: flex;
+  width: 100%;
+  min-height: 43px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid #d0d5dd;
+  border-radius: 9px;
+  background: #fff;
+  color: #344054;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  transition: background .15s ease, border-color .15s ease;
+}
+
+.cms-google-button:hover {
+  border-color: #98a2b3;
+  background: #f9fafb;
+}
+
+.cms-google-button:disabled {
+  cursor: wait;
+  opacity: .6;
+}
+
+.cms-google-button > span {
+  color: #4285f4;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.cms-login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 17px 0 12px;
+  color: #98a2b3;
+  font-size: 10px;
+}
+
+.cms-login-divider::before,
+.cms-login-divider::after {
+  height: 1px;
+  flex: 1;
+  background: #eaecf0;
+  content: "";
+}
+
 .cms-login-button {
   width: 100%;
   min-height: 43px;

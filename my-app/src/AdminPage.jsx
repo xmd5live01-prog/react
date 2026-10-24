@@ -15,6 +15,7 @@ const PANELS = [
 ];
 
 const PASSWORD_RECOVERY_REDIRECT = "https://xmd5live01-prog.github.io/wbs/?cms-recovery=1";
+const GOOGLE_OAUTH_REDIRECT = "https://xmd5live01-prog.github.io/wbs/?cms-oauth=1";
 
 const COLLECTIONS = {
   heroSlides: {
@@ -73,7 +74,7 @@ function Icon({ name }) {
   );
 }
 
-function LoginScreen({ onLogin, onResetPassword, busy, error, notice }) {
+function LoginScreen({ onLogin, onGoogleLogin, onResetPassword, busy, error, notice }) {
   const [email, setEmail] = useState("xmd5live01@gmail.com");
   const [password, setPassword] = useState("");
 
@@ -85,6 +86,11 @@ function LoginScreen({ onLogin, onResetPassword, busy, error, notice }) {
         <h1>Sign in to your CMS</h1>
         <p className="cms-login-description">Manage the public website, announcements, services, and payment information.</p>
         {error && <p className="cms-alert cms-alert-error" role="alert">{error}</p>}
+        <button className="cms-google-button" disabled={busy} onClick={onGoogleLogin} type="button">
+          <span aria-hidden="true">G</span>
+          Continue with Google
+        </button>
+        <p className="cms-login-divider"><span>or use your password</span></p>
         <label htmlFor="cms-email">Administrator email</label>
         <input autoComplete="username" id="cms-email" onChange={(event) => setEmail(event.target.value)} required type="email" value={email} />
         <label htmlFor="cms-password">Password</label>
@@ -96,7 +102,7 @@ function LoginScreen({ onLogin, onResetPassword, busy, error, notice }) {
           Forgot password?
         </button>
         {notice && <p className="cms-alert cms-alert-success" role="status">{notice}</p>}
-        <p className="cms-login-footnote">Access is invite-only. Ask a Supabase project administrator to invite your approved email.</p>
+        <p className="cms-login-footnote">Google sign-in only grants CMS access to email addresses approved by the site administrator.</p>
       </form>
     </main>
   );
@@ -300,6 +306,27 @@ export default function AdminPage({ onPreview, onPublicSite }) {
     setBusy(false);
   }
 
+  async function loginWithGoogle() {
+    setBusy(true);
+    setError("");
+    try {
+      const { error: loginError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: GOOGLE_OAUTH_REDIRECT,
+          queryParams: { prompt: "select_account" },
+        },
+      });
+      if (loginError) {
+        setError(loginError.message);
+        setBusy(false);
+      }
+    } catch (loginError) {
+      setError(loginError instanceof Error ? loginError.message : "Unable to start Google sign-in.");
+      setBusy(false);
+    }
+  }
+
   async function requestPasswordReset(email) {
     if (!email.trim()) {
       setError("Enter your administrator email first.");
@@ -471,7 +498,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
     return <PasswordRecoveryScreen busy={busy} error={error} onUpdatePassword={updatePassword} />;
   }
 
-  if (!session) return <LoginScreen busy={busy} error={error} notice={notice} onLogin={login} onResetPassword={requestPasswordReset} />;
+  if (!session) return <LoginScreen busy={busy} error={error} notice={notice} onGoogleLogin={loginWithGoogle} onLogin={login} onResetPassword={requestPasswordReset} />;
 
   if (!isAdmin && !loadingContent) {
     return (
