@@ -1,5 +1,6 @@
 export const DEFAULT_CMS_CONTENT = {
   siteTitle: "Hinunangan Water",
+  landingTemplate: "classic",
   siteLogoImage: "",
   heroBackgroundImage: "",
   primaryColor: "#0866ff",
@@ -119,6 +120,9 @@ export function normalizeCmsContent(content) {
   const normalized = {
     ...DEFAULT_CMS_CONTENT,
     ...content,
+    landingTemplate: ["classic", "modern-minimal", "warm-community", "elegant-water"].includes(content.landingTemplate)
+      ? content.landingTemplate
+      : DEFAULT_CMS_CONTENT.landingTemplate,
     siteLogoImage: typeof content.siteLogoImage === "string" ? content.siteLogoImage : DEFAULT_CMS_CONTENT.siteLogoImage,
     heroBackgroundImage: typeof content.heroBackgroundImage === "string" ? content.heroBackgroundImage : DEFAULT_CMS_CONTENT.heroBackgroundImage,
     heroSlides: Array.isArray(content.heroSlides) ? content.heroSlides : DEFAULT_CMS_CONTENT.heroSlides,

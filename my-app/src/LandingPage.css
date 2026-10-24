@@ -10,8 +10,72 @@
 
 @layer components {
   .landing-site {
+    display: flex;
+    flex-direction: column;
     color: var(--site-text);
     background-color: var(--site-page);
+  }
+  .landing-site[data-template="modern-minimal"] .landing-payment-section {
+    order: 1;
+  }
+  .landing-site[data-template="modern-minimal"] .landing-services-section {
+    order: 2;
+  }
+  .landing-site[data-template="modern-minimal"] .landing-steps-section {
+    order: 3;
+  }
+  .landing-site[data-template="modern-minimal"] .landing-hero-section {
+    min-height: 88svh;
+  }
+  .landing-site[data-template="modern-minimal"] .hero-photo {
+    opacity: .18;
+  }
+  .landing-site[data-template="modern-minimal"] .payment-carousel-frame,
+  .landing-site[data-template="modern-minimal"] .payment-method-card,
+  .landing-site[data-template="modern-minimal"] .landing-services-section > div > div > div {
+    border-radius: 14px;
+  }
+  .landing-site[data-template="warm-community"] .landing-services-section {
+    order: 1;
+  }
+  .landing-site[data-template="warm-community"] .landing-steps-section {
+    order: 2;
+  }
+  .landing-site[data-template="warm-community"] .landing-payment-section {
+    order: 3;
+  }
+  .landing-site[data-template="warm-community"] .landing-hero-section {
+    margin: 12px 12px 0;
+    border-radius: 28px;
+  }
+  .landing-site[data-template="warm-community"] .landing-services-section > div > div > div {
+    border-radius: 28px 28px 28px 8px;
+    box-shadow: 0 12px 30px color-mix(in srgb, var(--site-primary) 9%, transparent);
+  }
+  .landing-site[data-template="elegant-water"] .landing-payment-section {
+    order: 1;
+  }
+  .landing-site[data-template="elegant-water"] .landing-steps-section {
+    order: 2;
+  }
+  .landing-site[data-template="elegant-water"] .landing-services-section {
+    order: 3;
+  }
+  .landing-site[data-template="elegant-water"] .landing-hero-section {
+    min-height: 92svh;
+  }
+  .landing-site[data-template="elegant-water"] .landing-hero-slide > div:first-child {
+    max-width: 760px;
+    margin-inline: auto;
+  }
+  .landing-site[data-template="elegant-water"] #services h2,
+  .landing-site[data-template="elegant-water"] #services > div > p,
+  .landing-site[data-template="elegant-water"] #how h2 {
+    text-align: center;
+  }
+  .landing-site[data-template="elegant-water"] .landing-services-section > div > div > div {
+    border-radius: 30px;
+    text-align: center;
   }
   .landing-site :focus-visible {
     outline-color: var(--site-primary);

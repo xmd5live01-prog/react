@@ -24,6 +24,12 @@ const SITE_COLORS = [
   ["textColor", "Main text"],
   ["mutedTextColor", "Muted text"],
 ];
+const LANDING_TEMPLATES = [
+  ["classic", "Current layout", "Services, payments, then steps. Keep the existing look and section order."],
+  ["modern-minimal", "Modern Minimal", "Payments first, then services and steps, with a cleaner hero and card style."],
+  ["warm-community", "Warm Community", "Services and steps first, with a softer, more welcoming presentation."],
+  ["elegant-water", "Elegant Water", "A centered hero, followed by payments, steps, and services."],
+];
 const MAX_MEDIA_SIZE = 5 * 1024 * 1024;
 const MEDIA_TYPES = {
   "image/jpeg": "jpg",
@@ -687,6 +693,27 @@ export default function AdminPage({ onPreview, onPublicSite }) {
               {panel === "site" && (
                 <section className="cms-panel-content">
                   <div className="cms-section-toolbar"><div><h2>Site settings</h2><p>Update shared labels, branding, and colors displayed across the public site.</p></div><button className="cms-secondary-button" disabled={busy} onClick={resetBranding} type="button">Reset branding</button></div>
+                  <div className="cms-info-card cms-branding-card">
+                    <div className="cms-branding-heading"><div><h3>Landing page template</h3><p>Choose a layout variation. All templates use the same editable content, images, and color palette.</p></div></div>
+                    <div className="cms-template-grid">
+                      {LANDING_TEMPLATES.map(([id, label, description]) => (
+                        <button
+                          aria-pressed={draft.landingTemplate === id}
+                          className={`cms-template-card${draft.landingTemplate === id ? " is-selected" : ""}`}
+                          disabled={busy}
+                          key={id}
+                          onClick={() => updateSite("landingTemplate", id)}
+                          type="button"
+                        >
+                          <span aria-hidden="true" className={`cms-template-preview cms-template-preview-${id}`}>
+                            <i /><i /><i /><i />
+                          </span>
+                          <span className="cms-template-title">{label}{draft.landingTemplate === id && <small>Selected</small>}</span>
+                          <span className="cms-template-description">{description}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <div className="cms-info-card cms-branding-card">
                     <div className="cms-branding-heading"><div><h3>Site images</h3><p>JPG, PNG, or WebP; maximum file size 5 MB.</p></div></div>
                     <div className="cms-media-grid">

@@ -113,6 +113,7 @@ export default function LandingPage({
   return (
     <div
       className="landing-site pb-0"
+      data-template={content.landingTemplate}
       style={{
         "--site-primary": content.primaryColor,
         "--site-accent": content.accentColor,
@@ -160,7 +161,7 @@ export default function LandingPage({
 
       {/* HERO SLIDESHOW */}
       <section id="top"
-        className="hero-bg relative flex min-h-svh flex-col justify-center overflow-hidden pb-[120px] text-white"
+        className="hero-bg landing-hero-section relative flex min-h-svh flex-col justify-center overflow-hidden pb-[120px] text-white"
         onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
         onTouchEnd={(e) => {
           const dx = e.changedTouches[0].clientX - touchX.current;
@@ -178,7 +179,7 @@ export default function LandingPage({
         <div className="relative z-[5] mx-auto grid min-h-[520px] w-full max-w-[1180px] px-[clamp(16px,5vw,48px)] pb-5 pt-24 md:min-h-[430px] md:pt-[110px]">
           {visibleSlides.map((s, n) => (
             <article key={s.id} aria-hidden={n !== activeSlideIndex}
-              className={`col-start-1 row-start-1 grid grid-cols-1 items-center gap-10 transition-all duration-700 md:grid-cols-[1.1fr_.9fr] ${n === activeSlideIndex ? "visible translate-x-0 opacity-100" : "invisible translate-x-10 opacity-0"}`}>
+              className={`landing-hero-slide col-start-1 row-start-1 grid grid-cols-1 items-center gap-10 transition-all duration-700 ${content.landingTemplate === "elegant-water" ? "text-center md:grid-cols-1" : "md:grid-cols-[1.1fr_.9fr]"} ${n === activeSlideIndex ? "visible translate-x-0 opacity-100" : "invisible translate-x-10 opacity-0"}`}>
               <div>
                 <p className="mb-3.5 font-semibold text-white/85">{content.heroKicker}</p>
                 <h1 className="mb-5 font-display text-[clamp(2.6rem,7vw,5.2rem)] font-extrabold leading-none tracking-tight">{s.title}</h1>
@@ -194,7 +195,7 @@ export default function LandingPage({
                   <a href="#services" tabIndex={n === activeSlideIndex ? 0 : -1} className="rounded-full px-[26px] py-3.5 font-bold text-white shadow-[inset_0_0_0_2px_rgba(255,255,255,.55)]">Learn more</a>
                 </div>
               </div>
-              <div aria-hidden="true" className="relative order-first grid aspect-square w-full max-w-[180px] place-items-center justify-self-start md:order-none md:max-w-[380px] md:justify-self-center">
+              <div aria-hidden="true" className={`relative order-first grid aspect-square w-full max-w-[180px] place-items-center md:order-none md:max-w-[380px] ${content.landingTemplate === "elegant-water" ? "justify-self-center" : "justify-self-start md:justify-self-center"}`}>
                 <div className="absolute inset-[6%] animate-ring rounded-full border-2 border-white/30" />
                 <div className="absolute -inset-[4%] animate-ring rounded-full border-2 border-white/30 [animation-delay:1.3s]" />
                 <svg viewBox="0 0 100 100" className="w-[62%] animate-float rounded-full bg-white/10 fill-white/10 stroke-white p-[18%]"
@@ -239,7 +240,7 @@ export default function LandingPage({
       </section>
 
       {/* SERVICES */}
-      <section id="services" className="site-page-bg py-20">
+      <section id="services" className="landing-reorderable landing-services-section site-page-bg py-20">
         <div className={wrap}>
           <h2 className={`${h2} mb-2.5`}>{content.servicesHeading}</h2>
           <p className="site-muted mb-10 text-[1.1rem]">{content.servicesSubheading}</p>
@@ -258,7 +259,7 @@ export default function LandingPage({
       <section
         aria-label="Payment methods"
         aria-roledescription="carousel"
-        className="site-surface-bg py-16 sm:py-20"
+        className="landing-reorderable landing-payment-section site-surface-bg py-16 sm:py-20"
         onBlur={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget)) setPaymentSlidePaused(false);
         }}
@@ -370,7 +371,7 @@ export default function LandingPage({
       </section>
 
       {/* HOW IT WORKS */}
-      <section id="how" className="site-surface-bg pb-[170px] pt-20">
+      <section id="how" className="landing-reorderable landing-steps-section site-surface-bg pb-[170px] pt-20">
         <div className={wrap}>
           <h2 className={h2}>{content.stepsHeading}</h2>
           <ol className="mt-9 grid list-none grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-[26px] p-0">
