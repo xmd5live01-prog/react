@@ -1,5 +1,13 @@
 export const DEFAULT_CMS_CONTENT = {
   siteTitle: "Hinunangan Water",
+  siteLogoImage: "",
+  heroBackgroundImage: "",
+  primaryColor: "#0866ff",
+  accentColor: "#0755d4",
+  pageBackgroundColor: "#f0f2f5",
+  surfaceColor: "#ffffff",
+  textColor: "#1c1e21",
+  mutedTextColor: "#65676b",
   heroKicker: "Hinunangan Water Billing System",
   announcementsTitle: "Announcements",
   servicesHeading: "Tanang kinahanglan nimo sa tubig, usa ka lugar",
@@ -108,13 +116,34 @@ export function normalizeCmsContent(content) {
     return DEFAULT_CMS_CONTENT;
   }
 
-  return {
+  const normalized = {
     ...DEFAULT_CMS_CONTENT,
     ...content,
+    siteLogoImage: typeof content.siteLogoImage === "string" ? content.siteLogoImage : DEFAULT_CMS_CONTENT.siteLogoImage,
+    heroBackgroundImage: typeof content.heroBackgroundImage === "string" ? content.heroBackgroundImage : DEFAULT_CMS_CONTENT.heroBackgroundImage,
     heroSlides: Array.isArray(content.heroSlides) ? content.heroSlides : DEFAULT_CMS_CONTENT.heroSlides,
     announcements: Array.isArray(content.announcements) ? content.announcements : DEFAULT_CMS_CONTENT.announcements,
     services: Array.isArray(content.services) ? content.services : DEFAULT_CMS_CONTENT.services,
     paymentMethods: Array.isArray(content.paymentMethods) ? content.paymentMethods : DEFAULT_CMS_CONTENT.paymentMethods,
     steps: Array.isArray(content.steps) ? content.steps : DEFAULT_CMS_CONTENT.steps,
   };
+
+  for (const field of [
+    "primaryColor",
+    "accentColor",
+    "pageBackgroundColor",
+    "surfaceColor",
+    "textColor",
+    "mutedTextColor",
+  ]) {
+    if (typeof normalized[field] !== "string" || !/^#[\da-f]{3}(?:[\da-f]{3})?$/i.test(normalized[field])) {
+      normalized[field] = DEFAULT_CMS_CONTENT[field];
+    }
+  }
+
+  for (const field of ["siteLogoImage", "heroBackgroundImage"]) {
+    if (typeof normalized[field] !== "string") normalized[field] = DEFAULT_CMS_CONTENT[field];
+  }
+
+  return normalized;
 }

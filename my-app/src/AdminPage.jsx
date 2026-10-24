@@ -16,6 +16,20 @@ const PANELS = [
 
 const PASSWORD_RECOVERY_REDIRECT = "https://xmd5live01-prog.github.io/wbs/?cms-recovery=1";
 const GOOGLE_OAUTH_REDIRECT = "https://xmd5live01-prog.github.io/wbs/?cms-oauth=1";
+const SITE_COLORS = [
+  ["primaryColor", "Primary color"],
+  ["accentColor", "Accent color"],
+  ["pageBackgroundColor", "Page background"],
+  ["surfaceColor", "Card and section surface"],
+  ["textColor", "Main text"],
+  ["mutedTextColor", "Muted text"],
+];
+const MAX_MEDIA_SIZE = 5 * 1024 * 1024;
+const MEDIA_TYPES = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
 
 function getGoogleOAuthError() {
   const query = new URLSearchParams(window.location.search);
@@ -384,6 +398,49 @@ export default function AdminPage({ onPreview, onPublicSite }) {
     setNotice("");
   }
 
+  async function uploadSiteImage(field, file) {
+    if (!file) return;
+    const extension = MEDIA_TYPES[file.type];
+    if (!extension) {
+      setError("Choose a JPEG, PNG, or WebP image.");
+      return;
+    }
+    if (file.size > MAX_MEDIA_SIZE) {
+      setError("Images must be 5 MB or smaller.");
+      return;
+    }
+
+    setBusy(true);
+    setError("");
+    setNotice("");
+    const path = `${session.user.id}/${crypto.randomUUID()}.${extension}`;
+    const { error: uploadError } = await supabase.storage
+      .from("cms-media")
+      .upload(path, file, { cacheControl: "3600", contentType: file.type, upsert: false });
+    if (uploadError) {
+      setError(uploadError.message);
+      setBusy(false);
+      return;
+    }
+
+    const { data } = supabase.storage.from("cms-media").getPublicUrl(path);
+    updateSite(field, data.publicUrl);
+    setNotice("Image uploaded. Save the draft and publish it to update the public site.");
+    setBusy(false);
+  }
+
+  function resetBranding() {
+    setDraft((current) => ({
+      ...current,
+      siteLogoImage: DEFAULT_CMS_CONTENT.siteLogoImage,
+      heroBackgroundImage: DEFAULT_CMS_CONTENT.heroBackgroundImage,
+      ...Object.fromEntries(SITE_COLORS.map(([field]) => [field, DEFAULT_CMS_CONTENT[field]])),
+    }));
+    setDirty(true);
+    setNotice("");
+    setError("");
+  }
+
   function updateItem(section, id, field, value) {
     setDraft((current) => ({
       ...current,
@@ -629,7 +686,51 @@ export default function AdminPage({ onPreview, onPublicSite }) {
 
               {panel === "site" && (
                 <section className="cms-panel-content">
-                  <div className="cms-section-toolbar"><div><h2>Site settings</h2><p>Update shared labels and information displayed across the public site.</p></div></div>
+                  <div className="cms-section-toolbar"><div><h2>Site settings</h2><p>Update shared labels, branding, and colors displayed across the public site.</p></div><button className="cms-secondary-button" disabled={busy} onClick={resetBranding} type="button">Reset branding</button></div>
+                  <div className="cms-info-card cms-branding-card">
+                    <div className="cms-branding-heading"><div><h3>Site images</h3><p>JPG, PNG, or WebP; maximum file size 5 MB.</p></div></div>
+                    <div className="cms-media-grid">
+                      {[
+                        ["siteLogoImage", "Site logo", "Use a square or wide image with a transparent background for best results."],
+                        ["heroBackgroundImage", "Hero background", "This image is displayed behind the homepage hero content."],
+                      ].map(([field, label, help]) => (
+                        <div className="cms-media-field" key={field}>
+                          <div className="cms-media-preview">
+                            {draft[field] ? <img alt={`${label} preview`} src={draft[field]} /> : <span>No image selected</span>}
+                          </div>
+                          <label className="cms-field">
+                            <span>{label}</span>
+                            <input
+                              accept="image/jpeg,image/png,image/webp"
+                              disabled={busy}
+                              onChange={(event) => {
+                                const file = event.target.files?.[0];
+                                event.target.value = "";
+                                uploadSiteImage(field, file);
+                              }}
+                              type="file"
+                            />
+                          </label>
+                          <p>{help}</p>
+                          {draft[field] && <button className="cms-reset-image" disabled={busy} onClick={() => updateSite(field, "")} type="button">Remove from draft</button>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="cms-info-card cms-branding-card">
+                    <div className="cms-branding-heading"><div><h3>Site color palette</h3><p>Choose colors used by headings, controls, cards, backgrounds, and page text.</p></div></div>
+                    <div className="cms-color-grid">
+                      {SITE_COLORS.map(([field, label]) => (
+                        <label className="cms-color-field" key={field}>
+                          <span>{label}</span>
+                          <div>
+                            <input aria-label={`${label} picker`} disabled={busy} onChange={(event) => updateSite(field, event.target.value)} type="color" value={draft[field]} />
+                            <code>{draft[field]}</code>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
                   <div className="cms-settings-card">
                     {[
                       ["siteTitle", "Site title"],

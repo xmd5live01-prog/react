@@ -107,26 +107,40 @@ export default function LandingPage({
     return () => clearInterval(id);
   }, [paymentSlidePaused, visiblePaymentSlides.length]);
 
-  const h2 = "font-display font-bold text-[clamp(1.9rem,4vw,2.9rem)] tracking-tight text-[#1c1e21]";
+  const h2 = "site-text font-display font-bold text-[clamp(1.9rem,4vw,2.9rem)] tracking-tight";
   const wrap = "mx-auto max-w-[1180px] px-[clamp(16px,5vw,48px)]";
 
   return (
-    <div className="pb-0">
+    <div
+      className="landing-site pb-0"
+      style={{
+        "--site-primary": content.primaryColor,
+        "--site-accent": content.accentColor,
+        "--site-page": content.pageBackgroundColor,
+        "--site-surface": content.surfaceColor,
+        "--site-text": content.textColor,
+        "--site-muted": content.mutedTextColor,
+      }}
+    >
       {/* NAV (scrolls with the page) */}
       <header className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-[clamp(16px,5vw,64px)] pt-[calc(16px+env(safe-area-inset-top,0px))] pb-4 text-white">
         <a href="#top" className="flex items-center gap-2.5 font-display text-[1.1rem] font-medium">
-          <svg viewBox="0 0 40 40" width="34" height="34" className="drop-shadow-[0_3px_5px_rgba(0,0,0,.4)]" aria-hidden="true">
-            <path d="M20 3C12 14 6 21 6 27a14 14 0 0 0 28 0c0-6-6-13-14-24z" fill="#0866ff" />
-            <path d="M12 28c3-3 5-3 8 0s5 3 8 0" stroke="#fff" strokeWidth="2.2" fill="none" strokeLinecap="round" />
-          </svg>
+          {content.siteLogoImage ? (
+            <img alt="" className="site-header-logo" src={content.siteLogoImage} />
+          ) : (
+            <svg viewBox="0 0 40 40" width="34" height="34" className="drop-shadow-[0_3px_5px_rgba(0,0,0,.4)]" aria-hidden="true">
+              <path d="M20 3C12 14 6 21 6 27a14 14 0 0 0 28 0c0-6-6-13-14-24z" fill="var(--site-primary)" />
+              <path d="M12 28c3-3 5-3 8 0s5 3 8 0" stroke="#fff" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+            </svg>
+          )}
           <span>{content.siteTitle}</span>
         </a>
         <nav className="flex items-center gap-6 text-[.95rem] font-semibold">
-          <a className="hidden md:inline hover:text-[#0866ff]" href="#services">Services</a>
-          <a className="hidden md:inline hover:text-[#0866ff]" href="#how">How it works</a>
-          <a className="hidden md:inline hover:text-[#0866ff]" href="#app">Mobile app</a>
-          {onOpenAdmin && <button type="button" onClick={onOpenAdmin} className="hidden md:inline hover:text-[#0866ff]">Admin</button>}
-          <button type="button" onClick={onSearchBill} className="inline-flex items-center gap-2 rounded-full bg-[#0866ff] px-[18px] py-[9px] font-bold text-white shadow-[0_8px_24px_rgba(8,102,255,.35)]">
+          <a className="site-link hidden md:inline" href="#services">Services</a>
+          <a className="site-link hidden md:inline" href="#how">How it works</a>
+          <a className="site-link hidden md:inline" href="#app">Mobile app</a>
+          {onOpenAdmin && <button type="button" onClick={onOpenAdmin} className="site-link hidden md:inline">Admin</button>}
+          <button type="button" onClick={onSearchBill} className="site-primary-bg inline-flex items-center gap-2 rounded-full px-[18px] py-[9px] font-bold text-white shadow-[0_8px_24px_rgba(8,102,255,.35)]">
             <SearchIcon />Search Bill
           </button>
         </nav>
@@ -152,7 +166,7 @@ export default function LandingPage({
           const dx = e.changedTouches[0].clientX - touchX.current;
           if (Math.abs(dx) > 50) go(activeSlideIndex + (dx < 0 ? 1 : -1));
         }}>
-        <div className="hero-photo" style={{ backgroundImage: `url(${heroImg})` }} aria-hidden="true" />
+        <div className="hero-photo" style={{ backgroundImage: `url("${content.heroBackgroundImage || heroImg}")` }} aria-hidden="true" />
 
         <div className="pointer-events-none absolute inset-0" aria-hidden="true">
           {Array.from({ length: 10 }).map((_, n) => (
@@ -166,16 +180,16 @@ export default function LandingPage({
             <article key={s.id} aria-hidden={n !== activeSlideIndex}
               className={`col-start-1 row-start-1 grid grid-cols-1 items-center gap-10 transition-all duration-700 md:grid-cols-[1.1fr_.9fr] ${n === activeSlideIndex ? "visible translate-x-0 opacity-100" : "invisible translate-x-10 opacity-0"}`}>
               <div>
-                <p className="mb-3.5 font-semibold text-[#dce9ff]">{content.heroKicker}</p>
+                <p className="mb-3.5 font-semibold text-white/85">{content.heroKicker}</p>
                 <h1 className="mb-5 font-display text-[clamp(2.6rem,7vw,5.2rem)] font-extrabold leading-none tracking-tight">{s.title}</h1>
-                <p className="mb-8 max-w-[34em] text-[clamp(1.05rem,2vw,1.25rem)] leading-relaxed text-[#e8f0ff]">{s.text}</p>
+                <p className="mb-8 max-w-[34em] text-[clamp(1.05rem,2vw,1.25rem)] leading-relaxed text-white/90">{s.text}</p>
                 <div className="flex flex-wrap gap-3.5">
                   {s.key === "payment" ? (
-                    <button type="button" onClick={onSearchBill} tabIndex={n === activeSlideIndex ? 0 : -1} className="inline-flex items-center gap-2 rounded-full bg-[#0866ff] px-[26px] py-3.5 font-bold text-white shadow-[0_8px_24px_rgba(8,102,255,.35)] transition hover:-translate-y-0.5">
+                    <button type="button" onClick={onSearchBill} tabIndex={n === activeSlideIndex ? 0 : -1} className="site-primary-bg inline-flex items-center gap-2 rounded-full px-[26px] py-3.5 font-bold text-white shadow-[0_8px_24px_rgba(8,102,255,.35)] transition hover:-translate-y-0.5">
                       <SearchIcon />Search Bill
                     </button>
                   ) : (
-                    <a href="#top" tabIndex={n === activeSlideIndex ? 0 : -1} className="rounded-full bg-[#0866ff] px-[26px] py-3.5 font-bold text-white shadow-[0_8px_24px_rgba(8,102,255,.35)] transition hover:-translate-y-0.5">{s.cta}</a>
+                    <a href="#top" tabIndex={n === activeSlideIndex ? 0 : -1} className="site-primary-bg rounded-full px-[26px] py-3.5 font-bold text-white shadow-[0_8px_24px_rgba(8,102,255,.35)] transition hover:-translate-y-0.5">{s.cta}</a>
                   )}
                   <a href="#services" tabIndex={n === activeSlideIndex ? 0 : -1} className="rounded-full px-[26px] py-3.5 font-bold text-white shadow-[inset_0_0_0_2px_rgba(255,255,255,.55)]">Learn more</a>
                 </div>
@@ -195,7 +209,7 @@ export default function LandingPage({
           <div className="flex gap-2.5">
             {visibleSlides.map((s, n) => (
               <button key={s.id} aria-label={`Go to ${s.title}`} onClick={() => go(n)}
-                className={`h-3 rounded-full transition-all duration-300 ${n === activeSlideIndex ? "w-9 bg-[#0866ff]" : "w-3 bg-white/40"}`} />
+                className={`h-3 rounded-full transition-all duration-300 ${n === activeSlideIndex ? "site-primary-bg w-9" : "w-3 bg-white/40"}`} />
             ))}
           </div>
           <button aria-label="Next slide" onClick={() => go(activeSlideIndex + 1)} className="h-[42px] w-[42px] rounded-full border-2 border-white/50 text-2xl leading-none hover:bg-white/15">›</button>
@@ -205,13 +219,13 @@ export default function LandingPage({
         <div className={`${wrap} relative z-[5] w-full`}>
           <aside aria-label="Announcements" className="rounded-[22px] border border-white/30 bg-white/10 px-[22px] py-[18px] backdrop-blur-xl">
             <h2 className="mb-3 flex items-center gap-2 font-display text-[1.05rem] font-bold">
-              <span className="h-[9px] w-[9px] animate-ring rounded-full bg-[#0866ff]" />{content.announcementsTitle}
+              <span className="site-primary-bg h-[9px] w-[9px] animate-ring rounded-full" />{content.announcementsTitle}
             </h2>
             <div className="grid grid-cols-[repeat(auto-fit,minmax(230px,1fr))] gap-x-[22px] gap-y-3">
               {announcements.map((item) => (
-                <div key={item.id} className="border-l-[3px] border-[#0866ff] pl-3">
+                <div key={item.id} className="site-primary-border border-l-[3px] pl-3">
                   <b className="block text-[.95rem]">{item.title}</b>
-                  <span className="text-[.85rem] leading-snug text-[#e8f0ff]">{item.text}</span>
+                  <span className="text-[.85rem] leading-snug text-white/90">{item.text}</span>
                 </div>
               ))}
             </div>
@@ -220,21 +234,21 @@ export default function LandingPage({
 
         <svg className="absolute -bottom-px left-0 h-[110px] w-full" viewBox="0 0 1440 120" preserveAspectRatio="none" aria-hidden="true">
           <path className="animate-drift fill-white/35" d="M0 60c120-40 240-40 360 0s240 40 360 0 240-40 360 0 240 40 360 0v60H0z" />
-          <path className="fill-[#f0f2f5]" d="M0 80c120-30 240-30 360 0s240 30 360 0 240-30 360 0 240 30 360 0v40H0z" />
+          <path className="site-page-fill" d="M0 80c120-30 240-30 360 0s240 30 360 0 240-30 360 0 240 30 360 0v40H0z" />
         </svg>
       </section>
 
       {/* SERVICES */}
-      <section id="services" className="bg-[#f0f2f5] py-20">
+      <section id="services" className="site-page-bg py-20">
         <div className={wrap}>
           <h2 className={`${h2} mb-2.5`}>{content.servicesHeading}</h2>
-          <p className="mb-10 text-[1.1rem] text-[#65676b]">{content.servicesSubheading}</p>
+          <p className="site-muted mb-10 text-[1.1rem]">{content.servicesSubheading}</p>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-5">
             {services.map((item) => (
-              <div key={item.id} className="rounded-[22px_22px_22px_6px] border border-[#e4e6eb] bg-white p-[26px] shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl motion-reduce:transform-none motion-reduce:transition-none">
-                <span className="block h-[26px] w-[26px] rotate-45 rounded-[0_50%_50%_50%] bg-[#0866ff]" />
-                <h3 className="mb-2 mt-3.5 font-display text-xl font-bold text-[#1c1e21]">{item.title}</h3>
-                <p className="leading-relaxed text-[#65676b]">{item.text}</p>
+              <div key={item.id} className="site-surface-bg site-card-border rounded-[22px_22px_22px_6px] border p-[26px] shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl motion-reduce:transform-none motion-reduce:transition-none">
+                <span className="site-primary-bg block h-[26px] w-[26px] rotate-45 rounded-[0_50%_50%_50%]" />
+                <h3 className="site-text mb-2 mt-3.5 font-display text-xl font-bold">{item.title}</h3>
+                <p className="site-muted leading-relaxed">{item.text}</p>
               </div>
             ))}
           </div>
@@ -244,7 +258,7 @@ export default function LandingPage({
       <section
         aria-label="Payment methods"
         aria-roledescription="carousel"
-        className="bg-white py-16 sm:py-20"
+        className="site-surface-bg py-16 sm:py-20"
         onBlur={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget)) setPaymentSlidePaused(false);
         }}
@@ -255,15 +269,15 @@ export default function LandingPage({
         <div className={wrap}>
           <div className="mb-8 flex flex-wrap items-end justify-between gap-5 sm:mb-10">
             <div className="max-w-2xl">
-              <p className="mb-2 text-xs font-bold uppercase tracking-[.16em] text-[#0866ff]">Payment channels</p>
+              <p className="site-primary-text mb-2 text-xs font-bold uppercase tracking-[.16em]">Payment channels</p>
               <h2 className={`${h2} mb-2`}>{content.paymentHeading}</h2>
-              <p className="m-0 text-base leading-relaxed text-[#65676b]">
+              <p className="site-muted m-0 text-base leading-relaxed">
                 {content.paymentDescription}
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <span className="font-mono text-sm font-semibold tracking-wider text-[#65676b]" aria-live="polite">
-                {String(activePaymentSlide + 1).padStart(2, "0")} <span className="text-[#c7cbd1]">/</span> {String(visiblePaymentSlides.length).padStart(2, "0")}
+              <span className="site-muted font-mono text-sm font-semibold tracking-wider" aria-live="polite">
+                {String(activePaymentSlide + 1).padStart(2, "0")} <span className="opacity-50">/</span> {String(visiblePaymentSlides.length).padStart(2, "0")}
               </span>
               <button
                 aria-label="Previous payment methods"
@@ -356,16 +370,16 @@ export default function LandingPage({
       </section>
 
       {/* HOW IT WORKS */}
-      <section id="how" className="bg-white pb-[170px] pt-20">
+      <section id="how" className="site-surface-bg pb-[170px] pt-20">
         <div className={wrap}>
           <h2 className={h2}>{content.stepsHeading}</h2>
           <ol className="mt-9 grid list-none grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-[26px] p-0">
             {steps.map((item, n) => (
               <li key={item.id} className="flex items-start gap-4">
-                <span className="grid h-[46px] w-[46px] flex-none place-items-center rounded-full border-2 border-[#0866ff] bg-[#0866ff] font-display font-extrabold text-white">{n + 1}</span>
+                <span className="site-primary-bg grid h-[46px] w-[46px] flex-none place-items-center rounded-full border-2 font-display font-extrabold text-white">{n + 1}</span>
                 <div>
-                  <h3 className="mb-1.5 mt-0.5 font-display text-lg font-bold text-[#1c1e21]">{item.title}</h3>
-                  <p className="leading-normal text-[#65676b]">{item.text}</p>
+                  <h3 className="site-text mb-1.5 mt-0.5 font-display text-lg font-bold">{item.title}</h3>
+                  <p className="site-muted leading-normal">{item.text}</p>
                 </div>
               </li>
             ))}
@@ -374,7 +388,7 @@ export default function LandingPage({
       </section>
 
       {/* FIXED FOOTER */}
-      <footer id="app" className="fixed inset-x-0 bottom-0 z-50 border-t border-white/15 bg-[#0866ff]/85 px-[clamp(12px,4vw,48px)] pt-2.5 pb-[calc(10px+env(safe-area-inset-bottom,0px))] text-white backdrop-blur-xl">
+      <footer id="app" className="site-footer fixed inset-x-0 bottom-0 z-50 border-t border-white/15 px-[clamp(12px,4vw,48px)] pt-2.5 pb-[calc(10px+env(safe-area-inset-bottom,0px))] text-white backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-3">
           <StoreButton logo={<GooglePlayLogo />} small="Coming soon on" name="Google Play" />
           <p className="hidden text-center text-[.9rem] text-white/80 sm:block">{content.footerTagline}</p>

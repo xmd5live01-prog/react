@@ -695,6 +695,120 @@
   gap: 16px;
 }
 
+.cms-branding-card {
+  max-width: 900px;
+  margin-top: 16px;
+  padding: 19px;
+}
+
+.cms-branding-heading h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.cms-branding-heading p,
+.cms-media-field > p {
+  margin: 4px 0 0;
+  color: var(--cms-muted);
+  font-size: 11px;
+}
+
+.cms-media-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.cms-media-field {
+  display: grid;
+  align-content: start;
+  gap: 9px;
+}
+
+.cms-media-preview {
+  display: grid;
+  min-height: 150px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px dashed #d4dbe5;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #798495;
+  font-size: 11px;
+}
+
+.cms-media-preview img {
+  display: block;
+  max-width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+}
+
+.cms-media-field input[type="file"] {
+  font-size: 10px;
+}
+
+.cms-reset-image {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #b42318;
+  cursor: pointer;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.cms-reset-image:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+.cms-color-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 20px;
+  margin-top: 16px;
+}
+
+.cms-color-field {
+  display: grid;
+  gap: 7px;
+  color: #475467;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.cms-color-field > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.cms-color-field input[type="color"] {
+  width: 42px;
+  height: 36px;
+  padding: 3px;
+  border: 1px solid #d8dee8;
+  border-radius: 7px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.cms-color-field input[type="color"]:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+.cms-color-field code {
+  color: #667085;
+  font-size: 11px;
+  font-weight: 500;
+}
+
 .cms-settings-help {
   max-width: 720px;
 }
@@ -987,6 +1101,11 @@
 }
 
 @media (max-width: 680px) {
+  .cms-media-grid,
+  .cms-color-grid {
+    grid-template-columns: 1fr;
+  }
+
   .cms-admin {
     display: block;
   }
