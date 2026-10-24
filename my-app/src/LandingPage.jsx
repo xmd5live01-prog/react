@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import heroImg from "./assets/hero.jpg";
+import { DEFAULT_CMS_CONTENT, normalizeCmsContent } from "./cmsContent";
 import "./LandingPage.css";
 
 const SLIDES = [
@@ -13,60 +14,11 @@ const SLIDES = [
     icon: (<><rect x="16" y="16" width="30" height="30" rx="7" /><rect x="54" y="16" width="30" height="30" rx="7" /><rect x="16" y="54" width="30" height="30" rx="7" /><path d="M69 54v30M54 69h30" /></>) },
 ];
 
-const ANNOUNCEMENTS = [
-  ["Water interruption", "Pahibalo sa schedule sa maintenance sa inyong barangay."],
-  ["Meter reading", "Ang pagbasa sa metro mahitabo sa sinugdanan sa matag bulan."],
-  ["Payment reminder", "Bayri sa dili pa ang due date aron likayan ang penalty."],
+const SLIDE_ICONS = Object.fromEntries(SLIDES.map(({ key, icon }) => [key, icon]));
+const PAYMENT_CATEGORIES = [
+  { key: "wallet", title: "Pay with e-wallets", category: "Digital payments" },
+  { key: "bank", title: "Pay with traditional banks", category: "Direct bank payments" },
 ];
-
-const SERVICES = [
-  ["Online payment", "Bayad gamit ang imong account number. Naay receipt dayon."],
-  ["Bill inquiry", "Susiha ang imong current balance ug due date bisan asa."],
-  ["New connection", "Pag-apply og bag-ong koneksyon ug sunda ang status sa imong application."],
-  ["Leak & service report", "I-report ang tulo, putol nga tubo, o walay tubig sa inyong lugar."],
-  ["Consumption history", "Tan-awa kung pila ka cubic meter ang nagamit kada bulan."],
-  ["Announcements", "Madawat ang schedule sa maintenance ug uban pang pahibalo."],
-];
-
-const STEPS = [
-  ["Ibutang ang account number", "Makita kini sa imong water bill."],
-  ["Tan-awa ang bill", "Klaro ang amount, due date, ug consumption."],
-  ["Bayri ug kuhaa ang receipt", "Kompleto na, mahatagan ka og proof of payment."],
-];
-
-const PAYMENT_GROUPS = [
-  {
-    title: "Pay with e-wallets",
-    category: "Digital payments",
-    methods: ["GCash", "Maya", "GoTyme Bank", "SeaBank", "ShopeePay", "GrabPay"],
-  },
-  {
-    title: "Pay with traditional banks",
-    category: "Direct bank payments",
-    methods: [
-      "BDO Unibank",
-      "BPI (Bank of the Philippine Islands)",
-      "Metrobank",
-      "UnionBank of the Philippines",
-      "RCBC (Rizal Commercial Banking Corporation)",
-      "Security Bank",
-      "Chinabank",
-      "PNB (Philippine National Bank)",
-      "Land Bank of the Philippines",
-      "Bank of Commerce",
-      "Asia United Bank (AUB)",
-    ],
-  },
-];
-
-const PAYMENT_SLIDES = PAYMENT_GROUPS.flatMap((group) => {
-  const pageCount = Math.ceil(group.methods.length / 4);
-  return Array.from({ length: pageCount }, (_, page) => ({
-    ...group,
-    title: `${group.title} · ${page + 1}/${pageCount}`,
-    methods: group.methods.slice(page * 4, page * 4 + 4),
-  }));
-});
 
 const GooglePlayLogo = () => (
   <svg viewBox="0 0 512 512" width="28" height="28" aria-hidden="true">
@@ -102,25 +54,58 @@ const StoreButton = ({ logo, small, name }) => (
   </button>
 );
 
-export default function LandingPage({ onSearchBill }) {
+export default function LandingPage({
+  onSearchBill,
+  onOpenAdmin,
+  content: contentInput = DEFAULT_CMS_CONTENT,
+  preview = false,
+  onExitPreview,
+  contentError = "",
+}) {
   const [i, setI] = useState(0);
   const [paymentSlide, setPaymentSlide] = useState(0);
   const [paymentSlidePaused, setPaymentSlidePaused] = useState(false);
   const touchX = useRef(0);
-  const go = (n) => setI((n + SLIDES.length) % SLIDES.length);
+  const content = normalizeCmsContent(contentInput);
+  const slides = content.heroSlides
+    .filter((slide) => slide.active !== false)
+    .map((slide) => ({ ...slide, icon: SLIDE_ICONS[slide.key] ?? SLIDE_ICONS.more }));
+  const visibleSlides = slides.length ? slides : DEFAULT_CMS_CONTENT.heroSlides.map((slide) => ({
+    ...slide,
+    icon: SLIDE_ICONS[slide.key] ?? SLIDE_ICONS.more,
+  }));
+  const paymentSlides = PAYMENT_CATEGORIES.flatMap((group) => {
+    const methods = content.paymentMethods.filter((method) => method.active !== false && method.category === group.key);
+    const pageCount = Math.ceil(methods.length / 4);
+    return Array.from({ length: pageCount }, (_, page) => ({
+      ...group,
+      title: `${group.title} · ${page + 1}/${pageCount}`,
+      methods: methods.slice(page * 4, page * 4 + 4),
+    }));
+  });
+  const visiblePaymentSlides = paymentSlides.length ? paymentSlides : [
+    { title: "Payment methods", category: "Payment channels", methods: [] },
+  ];
+  const activeSlideIndex = i % visibleSlides.length;
+  const activePaymentSlide = paymentSlide % visiblePaymentSlides.length;
+  const announcements = content.announcements.filter((item) => item.active !== false);
+  const services = content.services.filter((item) => item.active !== false);
+  const steps = content.steps.filter((item) => item.active !== false);
+  const go = (n) => setI((n + visibleSlides.length) % visibleSlides.length);
 
   useEffect(() => {
-    const id = setInterval(() => setI((n) => (n + 1) % SLIDES.length), 4500);
+    if (visibleSlides.length < 2) return undefined;
+    const id = setInterval(() => setI((n) => (n + 1) % visibleSlides.length), 4500);
     return () => clearInterval(id);
-  }, []);
+  }, [visibleSlides.length]);
 
   useEffect(() => {
-    if (paymentSlidePaused) return undefined;
+    if (paymentSlidePaused || visiblePaymentSlides.length < 2) return undefined;
     const id = setInterval(() => {
-      setPaymentSlide((n) => (n + 1) % PAYMENT_SLIDES.length);
+      setPaymentSlide((n) => (n + 1) % visiblePaymentSlides.length);
     }, 7000);
     return () => clearInterval(id);
-  }, [paymentSlidePaused]);
+  }, [paymentSlidePaused, visiblePaymentSlides.length]);
 
   const h2 = "font-display font-bold text-[clamp(1.9rem,4vw,2.9rem)] tracking-tight text-[#1c1e21]";
   const wrap = "mx-auto max-w-[1180px] px-[clamp(16px,5vw,48px)]";
@@ -134,17 +119,30 @@ export default function LandingPage({ onSearchBill }) {
             <path d="M20 3C12 14 6 21 6 27a14 14 0 0 0 28 0c0-6-6-13-14-24z" fill="#0866ff" />
             <path d="M12 28c3-3 5-3 8 0s5 3 8 0" stroke="#fff" strokeWidth="2.2" fill="none" strokeLinecap="round" />
           </svg>
-          <span>Hinunangan <b className="font-extrabold">Water</b></span>
+          <span>{content.siteTitle}</span>
         </a>
         <nav className="flex items-center gap-6 text-[.95rem] font-semibold">
           <a className="hidden md:inline hover:text-[#0866ff]" href="#services">Services</a>
           <a className="hidden md:inline hover:text-[#0866ff]" href="#how">How it works</a>
           <a className="hidden md:inline hover:text-[#0866ff]" href="#app">Mobile app</a>
+          {onOpenAdmin && <button type="button" onClick={onOpenAdmin} className="hidden md:inline hover:text-[#0866ff]">Admin</button>}
           <button type="button" onClick={onSearchBill} className="inline-flex items-center gap-2 rounded-full bg-[#0866ff] px-[18px] py-[9px] font-bold text-white shadow-[0_8px_24px_rgba(8,102,255,.35)]">
             <SearchIcon />Search Bill
           </button>
         </nav>
       </header>
+
+      {preview && (
+        <div className="fixed inset-x-0 top-0 z-[60] flex items-center justify-between bg-[#13233e] px-4 py-2 text-sm font-semibold text-white shadow-lg">
+          <span>Draft preview — changes are not published</span>
+          <button className="rounded-md border border-white/40 px-3 py-1 hover:bg-white/10" onClick={onExitPreview} type="button">Exit preview</button>
+        </div>
+      )}
+      {contentError && (
+        <div className="fixed inset-x-0 bottom-24 z-[55] mx-auto w-fit max-w-[calc(100%-2rem)] rounded-xl bg-amber-100 px-4 py-3 text-sm text-amber-950 shadow-lg" role="status">
+          {contentError}
+        </div>
+      )}
 
       {/* HERO SLIDESHOW */}
       <section id="top"
@@ -152,7 +150,7 @@ export default function LandingPage({ onSearchBill }) {
         onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
         onTouchEnd={(e) => {
           const dx = e.changedTouches[0].clientX - touchX.current;
-          if (Math.abs(dx) > 50) go(i + (dx < 0 ? 1 : -1));
+          if (Math.abs(dx) > 50) go(activeSlideIndex + (dx < 0 ? 1 : -1));
         }}>
         <div className="hero-photo" style={{ backgroundImage: `url(${heroImg})` }} aria-hidden="true" />
 
@@ -164,22 +162,22 @@ export default function LandingPage({ onSearchBill }) {
         </div>
 
         <div className="relative z-[5] mx-auto grid min-h-[520px] w-full max-w-[1180px] px-[clamp(16px,5vw,48px)] pb-5 pt-24 md:min-h-[430px] md:pt-[110px]">
-          {SLIDES.map((s, n) => (
-            <article key={s.key} aria-hidden={n !== i}
-              className={`col-start-1 row-start-1 grid grid-cols-1 items-center gap-10 transition-all duration-700 md:grid-cols-[1.1fr_.9fr] ${n === i ? "visible translate-x-0 opacity-100" : "invisible translate-x-10 opacity-0"}`}>
+          {visibleSlides.map((s, n) => (
+            <article key={s.id} aria-hidden={n !== activeSlideIndex}
+              className={`col-start-1 row-start-1 grid grid-cols-1 items-center gap-10 transition-all duration-700 md:grid-cols-[1.1fr_.9fr] ${n === activeSlideIndex ? "visible translate-x-0 opacity-100" : "invisible translate-x-10 opacity-0"}`}>
               <div>
-                <p className="mb-3.5 font-semibold text-[#dce9ff]">Hinunangan Water Billing System</p>
+                <p className="mb-3.5 font-semibold text-[#dce9ff]">{content.heroKicker}</p>
                 <h1 className="mb-5 font-display text-[clamp(2.6rem,7vw,5.2rem)] font-extrabold leading-none tracking-tight">{s.title}</h1>
                 <p className="mb-8 max-w-[34em] text-[clamp(1.05rem,2vw,1.25rem)] leading-relaxed text-[#e8f0ff]">{s.text}</p>
                 <div className="flex flex-wrap gap-3.5">
                   {s.key === "payment" ? (
-                    <button type="button" onClick={onSearchBill} tabIndex={n === i ? 0 : -1} className="inline-flex items-center gap-2 rounded-full bg-[#0866ff] px-[26px] py-3.5 font-bold text-white shadow-[0_8px_24px_rgba(8,102,255,.35)] transition hover:-translate-y-0.5">
+                    <button type="button" onClick={onSearchBill} tabIndex={n === activeSlideIndex ? 0 : -1} className="inline-flex items-center gap-2 rounded-full bg-[#0866ff] px-[26px] py-3.5 font-bold text-white shadow-[0_8px_24px_rgba(8,102,255,.35)] transition hover:-translate-y-0.5">
                       <SearchIcon />Search Bill
                     </button>
                   ) : (
-                    <a href="#top" tabIndex={n === i ? 0 : -1} className="rounded-full bg-[#0866ff] px-[26px] py-3.5 font-bold text-white shadow-[0_8px_24px_rgba(8,102,255,.35)] transition hover:-translate-y-0.5">{s.cta}</a>
+                    <a href="#top" tabIndex={n === activeSlideIndex ? 0 : -1} className="rounded-full bg-[#0866ff] px-[26px] py-3.5 font-bold text-white shadow-[0_8px_24px_rgba(8,102,255,.35)] transition hover:-translate-y-0.5">{s.cta}</a>
                   )}
-                  <a href="#services" tabIndex={n === i ? 0 : -1} className="rounded-full px-[26px] py-3.5 font-bold text-white shadow-[inset_0_0_0_2px_rgba(255,255,255,.55)]">Learn more</a>
+                  <a href="#services" tabIndex={n === activeSlideIndex ? 0 : -1} className="rounded-full px-[26px] py-3.5 font-bold text-white shadow-[inset_0_0_0_2px_rgba(255,255,255,.55)]">Learn more</a>
                 </div>
               </div>
               <div aria-hidden="true" className="relative order-first grid aspect-square w-full max-w-[180px] place-items-center justify-self-start md:order-none md:max-w-[380px] md:justify-self-center">
@@ -193,27 +191,27 @@ export default function LandingPage({ onSearchBill }) {
         </div>
 
         <div className="relative z-[5] mb-6 mt-2 flex items-center justify-center gap-[18px]">
-          <button aria-label="Previous slide" onClick={() => go(i - 1)} className="h-[42px] w-[42px] rounded-full border-2 border-white/50 text-2xl leading-none hover:bg-white/15">‹</button>
+          <button aria-label="Previous slide" onClick={() => go(activeSlideIndex - 1)} className="h-[42px] w-[42px] rounded-full border-2 border-white/50 text-2xl leading-none hover:bg-white/15">‹</button>
           <div className="flex gap-2.5">
-            {SLIDES.map((s, n) => (
-              <button key={s.key} aria-label={`Go to ${s.title}`} onClick={() => go(n)}
-                className={`h-3 rounded-full transition-all duration-300 ${n === i ? "w-9 bg-[#0866ff]" : "w-3 bg-white/40"}`} />
+            {visibleSlides.map((s, n) => (
+              <button key={s.id} aria-label={`Go to ${s.title}`} onClick={() => go(n)}
+                className={`h-3 rounded-full transition-all duration-300 ${n === activeSlideIndex ? "w-9 bg-[#0866ff]" : "w-3 bg-white/40"}`} />
             ))}
           </div>
-          <button aria-label="Next slide" onClick={() => go(i + 1)} className="h-[42px] w-[42px] rounded-full border-2 border-white/50 text-2xl leading-none hover:bg-white/15">›</button>
+          <button aria-label="Next slide" onClick={() => go(activeSlideIndex + 1)} className="h-[42px] w-[42px] rounded-full border-2 border-white/50 text-2xl leading-none hover:bg-white/15">›</button>
         </div>
 
         {/* Transparent announcements */}
         <div className={`${wrap} relative z-[5] w-full`}>
           <aside aria-label="Announcements" className="rounded-[22px] border border-white/30 bg-white/10 px-[22px] py-[18px] backdrop-blur-xl">
             <h2 className="mb-3 flex items-center gap-2 font-display text-[1.05rem] font-bold">
-              <span className="h-[9px] w-[9px] animate-ring rounded-full bg-[#0866ff]" />Announcements
+              <span className="h-[9px] w-[9px] animate-ring rounded-full bg-[#0866ff]" />{content.announcementsTitle}
             </h2>
             <div className="grid grid-cols-[repeat(auto-fit,minmax(230px,1fr))] gap-x-[22px] gap-y-3">
-              {ANNOUNCEMENTS.map(([t, d]) => (
-                <div key={t} className="border-l-[3px] border-[#0866ff] pl-3">
-                  <b className="block text-[.95rem]">{t}</b>
-                  <span className="text-[.85rem] leading-snug text-[#e8f0ff]">{d}</span>
+              {announcements.map((item) => (
+                <div key={item.id} className="border-l-[3px] border-[#0866ff] pl-3">
+                  <b className="block text-[.95rem]">{item.title}</b>
+                  <span className="text-[.85rem] leading-snug text-[#e8f0ff]">{item.text}</span>
                 </div>
               ))}
             </div>
@@ -229,14 +227,14 @@ export default function LandingPage({ onSearchBill }) {
       {/* SERVICES */}
       <section id="services" className="bg-[#f0f2f5] py-20">
         <div className={wrap}>
-          <h2 className={`${h2} mb-2.5`}>Tanang kinahanglan nimo sa tubig, usa ka lugar</h2>
-          <p className="mb-10 text-[1.1rem] text-[#65676b]">Dili na kinahanglan moadto sa opisina para sa kasagarang transaksyon.</p>
+          <h2 className={`${h2} mb-2.5`}>{content.servicesHeading}</h2>
+          <p className="mb-10 text-[1.1rem] text-[#65676b]">{content.servicesSubheading}</p>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-5">
-            {SERVICES.map(([t, d]) => (
-              <div key={t} className="rounded-[22px_22px_22px_6px] border border-[#e4e6eb] bg-white p-[26px] shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl motion-reduce:transform-none motion-reduce:transition-none">
+            {services.map((item) => (
+              <div key={item.id} className="rounded-[22px_22px_22px_6px] border border-[#e4e6eb] bg-white p-[26px] shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl motion-reduce:transform-none motion-reduce:transition-none">
                 <span className="block h-[26px] w-[26px] rotate-45 rounded-[0_50%_50%_50%] bg-[#0866ff]" />
-                <h3 className="mb-2 mt-3.5 font-display text-xl font-bold text-[#1c1e21]">{t}</h3>
-                <p className="leading-relaxed text-[#65676b]">{d}</p>
+                <h3 className="mb-2 mt-3.5 font-display text-xl font-bold text-[#1c1e21]">{item.title}</h3>
+                <p className="leading-relaxed text-[#65676b]">{item.text}</p>
               </div>
             ))}
           </div>
@@ -258,19 +256,20 @@ export default function LandingPage({ onSearchBill }) {
           <div className="mb-8 flex flex-wrap items-end justify-between gap-5 sm:mb-10">
             <div className="max-w-2xl">
               <p className="mb-2 text-xs font-bold uppercase tracking-[.16em] text-[#0866ff]">Payment channels</p>
-              <h2 className={`${h2} mb-2`}>Convenient ways to pay</h2>
+              <h2 className={`${h2} mb-2`}>{content.paymentHeading}</h2>
               <p className="m-0 text-base leading-relaxed text-[#65676b]">
-                Choose a digital wallet or bank for your water bill payment.
+                {content.paymentDescription}
               </p>
             </div>
             <div className="flex items-center gap-3">
               <span className="font-mono text-sm font-semibold tracking-wider text-[#65676b]" aria-live="polite">
-                {String(paymentSlide + 1).padStart(2, "0")} <span className="text-[#c7cbd1]">/</span> {String(PAYMENT_SLIDES.length).padStart(2, "0")}
+                {String(activePaymentSlide + 1).padStart(2, "0")} <span className="text-[#c7cbd1]">/</span> {String(visiblePaymentSlides.length).padStart(2, "0")}
               </span>
               <button
                 aria-label="Previous payment methods"
                 className="payment-carousel-control"
-                onClick={() => setPaymentSlide((n) => (n + PAYMENT_SLIDES.length - 1) % PAYMENT_SLIDES.length)}
+                disabled={visiblePaymentSlides.length < 2}
+                onClick={() => setPaymentSlide((n) => (n + visiblePaymentSlides.length - 1) % visiblePaymentSlides.length)}
                 type="button"
               >
                 <span aria-hidden="true">←</span>
@@ -278,7 +277,8 @@ export default function LandingPage({ onSearchBill }) {
               <button
                 aria-label="Next payment methods"
                 className="payment-carousel-control"
-                onClick={() => setPaymentSlide((n) => (n + 1) % PAYMENT_SLIDES.length)}
+                disabled={visiblePaymentSlides.length < 2}
+                onClick={() => setPaymentSlide((n) => (n + 1) % visiblePaymentSlides.length)}
                 type="button"
               >
                 <span aria-hidden="true">→</span>
@@ -293,13 +293,13 @@ export default function LandingPage({ onSearchBill }) {
               className="payment-slide"
               key={paymentSlide}
               role="group"
-              aria-label={`${paymentSlide + 1} of ${PAYMENT_SLIDES.length}`}
+              aria-label={`${activePaymentSlide + 1} of ${visiblePaymentSlides.length}`}
               aria-roledescription="slide"
             >
               <div className="payment-slide-heading">
                 <div className="flex min-w-0 items-center gap-4">
                   <span className="payment-slide-icon" aria-hidden="true">
-                    {PAYMENT_SLIDES[paymentSlide].category === "Digital payments" ? (
+                    {visiblePaymentSlides[activePaymentSlide].category === "Digital payments" ? (
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="3" y="5" width="18" height="14" rx="2" />
                         <path d="M3 10h18M7 15h4" />
@@ -311,24 +311,24 @@ export default function LandingPage({ onSearchBill }) {
                     )}
                   </span>
                   <div>
-                    <p>{PAYMENT_SLIDES[paymentSlide].category}</p>
-                    <h3>{PAYMENT_SLIDES[paymentSlide].title}</h3>
+                    <p>{visiblePaymentSlides[activePaymentSlide].category}</p>
+                    <h3>{visiblePaymentSlides[activePaymentSlide].title}</h3>
                   </div>
                 </div>
                 <span className="hidden rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90 sm:inline-flex">
-                  {PAYMENT_SLIDES[paymentSlide].methods.length} options
+                  {visiblePaymentSlides[activePaymentSlide].methods.length} options
                 </span>
               </div>
               <ul className="payment-method-grid">
-                {PAYMENT_SLIDES[paymentSlide].methods.map((method) => (
-                  <li className="payment-method-card" key={method}>
+                {visiblePaymentSlides[activePaymentSlide].methods.map((method) => (
+                  <li className="payment-method-card" key={method.id}>
                     <span className="payment-method-mark" aria-hidden="true">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="3" y="5" width="18" height="14" rx="3" />
                         <path d="M3 10h18M7 15h4" />
                       </svg>
                     </span>
-                    <span>{method}</span>
+                    <span>{method.name}</span>
                     <svg className="payment-method-arrow" viewBox="0 0 20 20" fill="none" aria-hidden="true">
                       <path d="M4 10h11m-4-4 4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
@@ -338,12 +338,12 @@ export default function LandingPage({ onSearchBill }) {
               <div className="payment-slide-footer">
                 <span>Payment method list</span>
                 <div className="flex items-center gap-2" aria-label="Payment slide selection">
-                  {PAYMENT_SLIDES.map((slide, index) => (
+                  {visiblePaymentSlides.map((slide, index) => (
                     <button
-                      aria-current={paymentSlide === index ? "true" : undefined}
+                      aria-current={activePaymentSlide === index ? "true" : undefined}
                       aria-label={`Show ${slide.title}`}
-                      className={`payment-slide-indicator${paymentSlide === index ? " is-active" : ""}`}
-                      key={slide.title}
+                      className={`payment-slide-indicator${activePaymentSlide === index ? " is-active" : ""}`}
+                      key={`${slide.category}-${slide.title}`}
                       onClick={() => setPaymentSlide(index)}
                       type="button"
                     />
@@ -358,14 +358,14 @@ export default function LandingPage({ onSearchBill }) {
       {/* HOW IT WORKS */}
       <section id="how" className="bg-white pb-[170px] pt-20">
         <div className={wrap}>
-          <h2 className={h2}>Pagbayad sa tulo ka lakang</h2>
+          <h2 className={h2}>{content.stepsHeading}</h2>
           <ol className="mt-9 grid list-none grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-[26px] p-0">
-            {STEPS.map(([t, d], n) => (
-              <li key={t} className="flex items-start gap-4">
+            {steps.map((item, n) => (
+              <li key={item.id} className="flex items-start gap-4">
                 <span className="grid h-[46px] w-[46px] flex-none place-items-center rounded-full border-2 border-[#0866ff] bg-[#0866ff] font-display font-extrabold text-white">{n + 1}</span>
                 <div>
-                  <h3 className="mb-1.5 mt-0.5 font-display text-lg font-bold text-[#1c1e21]">{t}</h3>
-                  <p className="leading-normal text-[#65676b]">{d}</p>
+                  <h3 className="mb-1.5 mt-0.5 font-display text-lg font-bold text-[#1c1e21]">{item.title}</h3>
+                  <p className="leading-normal text-[#65676b]">{item.text}</p>
                 </div>
               </li>
             ))}
@@ -377,7 +377,7 @@ export default function LandingPage({ onSearchBill }) {
       <footer id="app" className="fixed inset-x-0 bottom-0 z-50 border-t border-white/15 bg-[#0866ff]/85 px-[clamp(12px,4vw,48px)] pt-2.5 pb-[calc(10px+env(safe-area-inset-bottom,0px))] text-white backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-3">
           <StoreButton logo={<GooglePlayLogo />} small="Coming soon on" name="Google Play" />
-          <p className="hidden text-center text-[.9rem] text-white/80 sm:block"><b>Mobile app</b> coming soon</p>
+          <p className="hidden text-center text-[.9rem] text-white/80 sm:block">{content.footerTagline}</p>
           <StoreButton logo={<AppleLogo />} small="Coming soon on the" name="App Store" />
         </div>
       </footer>

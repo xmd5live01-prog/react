@@ -17,11 +17,31 @@ From the `my-app` directory, use `npm run build` to create a production build an
 
 The lookup function enforces server-side limits of 30 requests per IP and 5 requests per IP/account combination per 10 minutes. Cloudflare Turnstile verification is enabled when `TURNSTILE_SECRET_KEY` is configured; add the matching public site key to the app build before enabling the secret.
 
-1. Install the Supabase CLI and link this project with `supabase link --project-ref hyxotymypbmkyzghwspj`.
-2. Apply the database migration with `supabase db push`.
-3. Deploy the rate-limited function with `supabase functions deploy get-water-bill`. It supports the currently deployed app's GET requests as well as POST requests.
+1. From the repository root, run the CLI with `npx supabase` (no global install required). Sign in and link the project:
+
+   ```powershell
+   npx supabase login
+   npx supabase link --project-ref hyxotymypbmkyzghwspj
+   ```
+
+2. Apply the database migration with `npx supabase db push`.
+3. Deploy the rate-limited function with `npx supabase functions deploy get-water-bill`. It supports the currently deployed app's GET requests as well as POST requests.
 4. In Cloudflare, create a Turnstile widget for `xmd5live01-prog.github.io` and any development hostnames you use. Obtain its site key and secret key.
 5. Add the Turnstile **site key** as the GitHub Actions repository variable `VITE_TURNSTILE_SITE_KEY`, publish the app, then set `TURNSTILE_SECRET_KEY` in the Supabase project's Edge Function secrets and deploy the function again. This order avoids requiring a challenge before the updated app can send one.
 6. The default allowed origin is the production GitHub Pages site; set `ALLOWED_ORIGINS` to a comma-separated list of exact origins when adding other sites or enabling local development (for example, `https://xmd5live01-prog.github.io,http://localhost:5173,http://127.0.0.1:5173`).
 
 The site key is public; never put the Turnstile secret or Supabase service-role key in Vite variables or browser code. Keep Supabase Edge Function JWT verification enabled. The function accepts GET and POST requests from the configured app origins and returns generic errors for missing accounts and backend failures.
+
+## Website content management
+
+The invite-only CMS is available at `https://xmd5live01-prog.github.io/wbs/#/admin` (or by choosing **Admin** in the landing-page navigation). It uses Supabase Auth and the public anon key already supplied to the GitHub Pages build. The approved administrator email is `xmd5live01@gmail.com`; no password is stored in this repository.
+
+Before signing in for the first time:
+
+1. From the repository root, link the Supabase project with `npx supabase link --project-ref hyxotymypbmkyzghwspj` if it is not linked already, then apply the migration with `npx supabase db push`.
+2. In the Supabase dashboard, invite `xmd5live01@gmail.com` under **Authentication → Users** and finish the password setup using Supabase's invite flow.
+3. Confirm the GitHub Actions secret `VITE_SUPABASE_ANON_KEY` is configured, then deploy the app.
+
+Administrators can edit the hero slides, announcements, services, payment providers, steps, and shared page headings. Entries can be reordered or deactivated without being deleted. **Save draft** stores unpublished edits, **Preview** displays the draft in the current browser session, and **Publish** makes the saved content live while recording a revision. Restoring a revision only replaces the draft; publish it separately to make it public. Public visitors can read only the published version.
+
+The CMS schema is defined in `supabase/migrations/20261025041000_add_site_cms.sql`. Do not expose a Supabase service-role key in the browser or GitHub Pages build; all administrator operations use the authenticated session and row-level security.
