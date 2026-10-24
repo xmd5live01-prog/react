@@ -886,6 +886,28 @@
   font-size: 12px;
 }
 
+.cms-reset-link {
+  display: block;
+  margin: 12px auto 0;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: #0755d4;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.cms-reset-link:hover {
+  text-decoration: underline;
+}
+
+.cms-reset-link:disabled {
+  cursor: wait;
+  opacity: .6;
+}
+
 .cms-login-footnote {
   margin: 18px 0 0;
   color: #828c9b;

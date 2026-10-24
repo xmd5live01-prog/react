@@ -71,7 +71,7 @@ function Icon({ name }) {
   );
 }
 
-function LoginScreen({ onLogin, busy, error }) {
+function LoginScreen({ onLogin, onResetPassword, busy, error, notice }) {
   const [email, setEmail] = useState("xmd5live01@gmail.com");
   const [password, setPassword] = useState("");
 
@@ -90,7 +90,44 @@ function LoginScreen({ onLogin, busy, error }) {
         <button className="cms-primary-button cms-login-button" disabled={busy} type="submit">
           {busy ? "Signing in..." : "Sign in"}
         </button>
+        <button className="cms-reset-link" disabled={busy} onClick={() => onResetPassword(email)} type="button">
+          Forgot password?
+        </button>
+        {notice && <p className="cms-alert cms-alert-success" role="status">{notice}</p>}
         <p className="cms-login-footnote">Access is invite-only. Ask a Supabase project administrator to invite your approved email.</p>
+      </form>
+    </main>
+  );
+}
+
+function PasswordRecoveryScreen({ busy, error, onUpdatePassword }) {
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  function submit(event) {
+    event.preventDefault();
+    if (password !== confirmPassword) {
+      onUpdatePassword(null, "The passwords do not match.");
+      return;
+    }
+    onUpdatePassword(password);
+  }
+
+  return (
+    <main className="cms-login-shell">
+      <form className="cms-login-card" onSubmit={submit}>
+        <div className="cms-login-mark">H<span>W</span></div>
+        <p className="cms-eyebrow">HINUNANGAN WATER SYSTEM</p>
+        <h1>Set your CMS password</h1>
+        <p className="cms-login-description">Choose a new password for your administrator account.</p>
+        {error && <p className="cms-alert cms-alert-error" role="alert">{error}</p>}
+        <label htmlFor="cms-new-password">New password</label>
+        <input autoComplete="new-password" id="cms-new-password" minLength={8} onChange={(event) => setPassword(event.target.value)} required type="password" value={password} />
+        <label htmlFor="cms-confirm-password">Confirm new password</label>
+        <input autoComplete="new-password" id="cms-confirm-password" minLength={8} onChange={(event) => setConfirmPassword(event.target.value)} required type="password" value={confirmPassword} />
+        <button className="cms-primary-button cms-login-button" disabled={busy} type="submit">
+          {busy ? "Updating password..." : "Set password"}
+        </button>
       </form>
     </main>
   );
@@ -159,6 +196,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
   const [authChecked, setAuthChecked] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [passwordRecovery, setPasswordRecovery] = useState(() => new URLSearchParams(window.location.search).has("cms-recovery"));
   const [loadingContent, setLoadingContent] = useState(false);
   const [contentLoaded, setContentLoaded] = useState(false);
   const [contentRetry, setContentRetry] = useState(0);
@@ -190,9 +228,10 @@ export default function AdminPage({ onPreview, onPublicSite }) {
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
       setError("");
+      if (event === "PASSWORD_RECOVERY") setPasswordRecovery(true);
     });
     return () => {
       mounted = false;
@@ -256,6 +295,39 @@ export default function AdminPage({ onPreview, onPublicSite }) {
     setError("");
     const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
     if (loginError) setError(loginError.message);
+    setBusy(false);
+  }
+
+  async function requestPasswordReset(email) {
+    if (!email.trim()) {
+      setError("Enter your administrator email first.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    setNotice("");
+    const redirectTo = `${window.location.origin}${window.location.pathname}?cms-recovery=1`;
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+    if (resetError) setError(resetError.message);
+    else setNotice("If that email is registered, a password reset link has been sent. Check your inbox.");
+    setBusy(false);
+  }
+
+  async function updatePassword(password, validationError) {
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setBusy(true);
+    setError("");
+    const { error: updateError } = await supabase.auth.updateUser({ password });
+    if (updateError) {
+      setError(updateError.message);
+    } else {
+      setPasswordRecovery(false);
+      setNotice("Password updated. You are signed in to the CMS.");
+      window.history.replaceState(null, "", `${window.location.pathname}#/admin`);
+    }
     setBusy(false);
   }
 
@@ -391,7 +463,12 @@ export default function AdminPage({ onPreview, onPublicSite }) {
     return <main className="cms-login-shell"><p className="cms-login-description">Checking administrator session...</p></main>;
   }
 
-  if (!session) return <LoginScreen busy={busy} error={error} onLogin={login} />;
+  if (passwordRecovery) {
+    if (!session) return <main className="cms-login-shell"><p className="cms-login-description">Validating password reset link...</p></main>;
+    return <PasswordRecoveryScreen busy={busy} error={error} onUpdatePassword={updatePassword} />;
+  }
+
+  if (!session) return <LoginScreen busy={busy} error={error} notice={notice} onLogin={login} onResetPassword={requestPasswordReset} />;
 
   if (!isAdmin && !loadingContent) {
     return (
