@@ -34,13 +34,15 @@ const STEPS = [
   ["Bayri ug kuhaa ang receipt", "Kompleto na, mahatagan ka og proof of payment."],
 ];
 
-const PAYMENT_SLIDES = [
+const PAYMENT_GROUPS = [
   {
     title: "Pay with e-wallets",
+    category: "Digital payments",
     methods: ["GCash", "Maya", "GoTyme Bank", "SeaBank", "ShopeePay", "GrabPay"],
   },
   {
     title: "Pay with traditional banks",
+    category: "Direct bank payments",
     methods: [
       "BDO Unibank",
       "BPI (Bank of the Philippine Islands)",
@@ -56,6 +58,15 @@ const PAYMENT_SLIDES = [
     ],
   },
 ];
+
+const PAYMENT_SLIDES = PAYMENT_GROUPS.flatMap((group) => {
+  const pageCount = Math.ceil(group.methods.length / 4);
+  return Array.from({ length: pageCount }, (_, page) => ({
+    ...group,
+    title: `${group.title} · ${page + 1}/${pageCount}`,
+    methods: group.methods.slice(page * 4, page * 4 + 4),
+  }));
+});
 
 const GooglePlayLogo = () => (
   <svg viewBox="0 0 512 512" width="28" height="28" aria-hidden="true">
@@ -288,7 +299,7 @@ export default function LandingPage({ onSearchBill }) {
               <div className="payment-slide-heading">
                 <div className="flex min-w-0 items-center gap-4">
                   <span className="payment-slide-icon" aria-hidden="true">
-                    {paymentSlide === 0 ? (
+                    {PAYMENT_SLIDES[paymentSlide].category === "Digital payments" ? (
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="3" y="5" width="18" height="14" rx="2" />
                         <path d="M3 10h18M7 15h4" />
@@ -300,7 +311,7 @@ export default function LandingPage({ onSearchBill }) {
                     )}
                   </span>
                   <div>
-                    <p>{paymentSlide === 0 ? "Digital payments" : "Direct bank payments"}</p>
+                    <p>{PAYMENT_SLIDES[paymentSlide].category}</p>
                     <h3>{PAYMENT_SLIDES[paymentSlide].title}</h3>
                   </div>
                 </div>
