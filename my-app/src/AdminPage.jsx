@@ -203,6 +203,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
   const [session, setSession] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [adminCheckedUserId, setAdminCheckedUserId] = useState(null);
   const [busy, setBusy] = useState(false);
   const [passwordRecovery, setPasswordRecovery] = useState(() => new URLSearchParams(window.location.search).has("cms-recovery"));
   const [loadingContent, setLoadingContent] = useState(false);
@@ -216,6 +217,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
   const [published, setPublished] = useState(null);
   const [hasDraft, setHasDraft] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const oauthCallback = new URLSearchParams(window.location.search).has("cms-oauth");
   const userId = session?.user?.id;
 
   useEffect(() => {
@@ -229,6 +231,9 @@ export default function AdminPage({ onPreview, onPublicSite }) {
       if (sessionError) setError(sessionError.message);
       setSession(data.session);
       setAuthChecked(true);
+      if (data.session && oauthCallback) {
+        window.history.replaceState(null, "", `${window.location.pathname}#/admin`);
+      }
     }).catch((sessionError) => {
       if (mounted) {
         setError(sessionError instanceof Error ? sessionError.message : "Unable to check your sign-in session.");
@@ -245,7 +250,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [oauthCallback]);
 
   useEffect(() => {
     if (!userId) return undefined;
@@ -257,6 +262,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
       const { data: adminResult, error: adminError } = await supabase.rpc("cms_is_admin");
       if (adminError) throw adminError;
       if (!mounted) return;
+      setAdminCheckedUserId(userId);
       if (!adminResult) {
         setIsAdmin(false);
         setLoadingContent(false);
@@ -278,12 +284,15 @@ export default function AdminPage({ onPreview, onPublicSite }) {
       setPublished(publicRow);
       setRevisions(revisionRows ?? []);
       setDirty(false);
+      setPanel("overview");
       setContentLoaded(true);
       setLoadingContent(false);
     }
 
     loadCms().catch((loadError) => {
       if (!mounted) return;
+      setIsAdmin(false);
+      setAdminCheckedUserId(userId);
       setError(loadError instanceof Error ? loadError.message : "Unable to load CMS content.");
       setLoadingContent(false);
     });
@@ -500,7 +509,11 @@ export default function AdminPage({ onPreview, onPublicSite }) {
 
   if (!session) return <LoginScreen busy={busy} error={error} notice={notice} onGoogleLogin={loginWithGoogle} onLogin={login} onResetPassword={requestPasswordReset} />;
 
-  if (!isAdmin && !loadingContent) {
+  if (adminCheckedUserId !== userId || loadingContent) {
+    return <main className="cms-login-shell"><p className="cms-login-description">Verifying administrator access...</p></main>;
+  }
+
+  if (!isAdmin) {
     return (
       <main className="cms-login-shell">
         <div className="cms-login-card">
