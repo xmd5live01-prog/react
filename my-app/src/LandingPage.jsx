@@ -34,6 +34,29 @@ const STEPS = [
   ["Bayri ug kuhaa ang receipt", "Kompleto na, mahatagan ka og proof of payment."],
 ];
 
+const PAYMENT_SLIDES = [
+  {
+    title: "Pay with e-wallets",
+    methods: ["GCash", "Maya", "GoTyme Bank", "SeaBank", "ShopeePay", "GrabPay"],
+  },
+  {
+    title: "Pay with traditional banks",
+    methods: [
+      "BDO Unibank",
+      "BPI (Bank of the Philippine Islands)",
+      "Metrobank",
+      "UnionBank of the Philippines",
+      "RCBC (Rizal Commercial Banking Corporation)",
+      "Security Bank",
+      "Chinabank",
+      "PNB (Philippine National Bank)",
+      "Land Bank of the Philippines",
+      "Bank of Commerce",
+      "Asia United Bank (AUB)",
+    ],
+  },
+];
+
 const GooglePlayLogo = () => (
   <svg viewBox="0 0 512 512" width="28" height="28" aria-hidden="true">
     <path fill="#00d7fe" d="M48 22c-6 6-10 15-10 27v414c0 12 4 21 10 27l2 2 232-232v-6L50 20z" />
@@ -70,6 +93,8 @@ const StoreButton = ({ logo, small, name }) => (
 
 export default function LandingPage({ onSearchBill }) {
   const [i, setI] = useState(0);
+  const [paymentSlide, setPaymentSlide] = useState(0);
+  const [paymentSlidePaused, setPaymentSlidePaused] = useState(false);
   const touchX = useRef(0);
   const go = (n) => setI((n + SLIDES.length) % SLIDES.length);
 
@@ -77,6 +102,14 @@ export default function LandingPage({ onSearchBill }) {
     const id = setInterval(() => setI((n) => (n + 1) % SLIDES.length), 4500);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    if (paymentSlidePaused) return undefined;
+    const id = setInterval(() => {
+      setPaymentSlide((n) => (n + 1) % PAYMENT_SLIDES.length);
+    }, 7000);
+    return () => clearInterval(id);
+  }, [paymentSlidePaused]);
 
   const h2 = "font-display font-bold text-[clamp(1.9rem,4vw,2.9rem)] tracking-tight text-[#1c1e21]";
   const wrap = "mx-auto max-w-[1180px] px-[clamp(16px,5vw,48px)]";
@@ -195,6 +228,118 @@ export default function LandingPage({ onSearchBill }) {
                 <p className="leading-relaxed text-[#65676b]">{d}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section
+        aria-label="Payment methods"
+        aria-roledescription="carousel"
+        className="bg-white py-16 sm:py-20"
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setPaymentSlidePaused(false);
+        }}
+        onFocusCapture={() => setPaymentSlidePaused(true)}
+        onMouseEnter={() => setPaymentSlidePaused(true)}
+        onMouseLeave={() => setPaymentSlidePaused(false)}
+      >
+        <div className={wrap}>
+          <div className="mb-8 flex flex-wrap items-end justify-between gap-5 sm:mb-10">
+            <div className="max-w-2xl">
+              <p className="mb-2 text-xs font-bold uppercase tracking-[.16em] text-[#0866ff]">Payment channels</p>
+              <h2 className={`${h2} mb-2`}>Convenient ways to pay</h2>
+              <p className="m-0 text-base leading-relaxed text-[#65676b]">
+                Choose a digital wallet or bank for your water bill payment.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="font-mono text-sm font-semibold tracking-wider text-[#65676b]" aria-live="polite">
+                {String(paymentSlide + 1).padStart(2, "0")} <span className="text-[#c7cbd1]">/</span> {String(PAYMENT_SLIDES.length).padStart(2, "0")}
+              </span>
+              <button
+                aria-label="Previous payment methods"
+                className="payment-carousel-control"
+                onClick={() => setPaymentSlide((n) => (n + PAYMENT_SLIDES.length - 1) % PAYMENT_SLIDES.length)}
+                type="button"
+              >
+                <span aria-hidden="true">←</span>
+              </button>
+              <button
+                aria-label="Next payment methods"
+                className="payment-carousel-control"
+                onClick={() => setPaymentSlide((n) => (n + 1) % PAYMENT_SLIDES.length)}
+                type="button"
+              >
+                <span aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="payment-carousel-frame">
+            <div
+              aria-atomic="true"
+              aria-live="polite"
+              className="payment-slide"
+              key={paymentSlide}
+              role="group"
+              aria-label={`${paymentSlide + 1} of ${PAYMENT_SLIDES.length}`}
+              aria-roledescription="slide"
+            >
+              <div className="payment-slide-heading">
+                <div className="flex min-w-0 items-center gap-4">
+                  <span className="payment-slide-icon" aria-hidden="true">
+                    {paymentSlide === 0 ? (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="5" width="18" height="14" rx="2" />
+                        <path d="M3 10h18M7 15h4" />
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 9h18M5 9v10m4-10v10m6-10v10m4-10v10M3 19h18M12 4l9 5H3l9-5Z" />
+                      </svg>
+                    )}
+                  </span>
+                  <div>
+                    <p>{paymentSlide === 0 ? "Digital payments" : "Direct bank payments"}</p>
+                    <h3>{PAYMENT_SLIDES[paymentSlide].title}</h3>
+                  </div>
+                </div>
+                <span className="hidden rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90 sm:inline-flex">
+                  {PAYMENT_SLIDES[paymentSlide].methods.length} options
+                </span>
+              </div>
+              <ul className="payment-method-grid">
+                {PAYMENT_SLIDES[paymentSlide].methods.map((method) => (
+                  <li className="payment-method-card" key={method}>
+                    <span className="payment-method-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="5" width="18" height="14" rx="3" />
+                        <path d="M3 10h18M7 15h4" />
+                      </svg>
+                    </span>
+                    <span>{method}</span>
+                    <svg className="payment-method-arrow" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                      <path d="M4 10h11m-4-4 4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </li>
+                ))}
+              </ul>
+              <div className="payment-slide-footer">
+                <span>Payment method list</span>
+                <div className="flex items-center gap-2" aria-label="Payment slide selection">
+                  {PAYMENT_SLIDES.map((slide, index) => (
+                    <button
+                      aria-current={paymentSlide === index ? "true" : undefined}
+                      aria-label={`Show ${slide.title}`}
+                      className={`payment-slide-indicator${paymentSlide === index ? " is-active" : ""}`}
+                      key={slide.title}
+                      onClick={() => setPaymentSlide(index)}
+                      type="button"
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

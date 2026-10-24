@@ -21,6 +21,161 @@
     -webkit-mask-image: linear-gradient(transparent, #000 28%, #000 72%, transparent);
     mask-image: linear-gradient(transparent, #000 28%, #000 72%, transparent);
   }
+  .payment-carousel-frame {
+    overflow: hidden;
+    border: 1px solid #dce3ed;
+    border-radius: 24px;
+    background: #fff;
+    box-shadow: 0 20px 55px rgb(28 48 78 / 11%), 0 3px 10px rgb(28 48 78 / 5%);
+  }
+  .payment-slide {
+    animation: payment-slide-enter .4s ease-out both;
+  }
+  .payment-slide-heading {
+    display: flex;
+    min-height: 116px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 22px clamp(20px, 4vw, 38px);
+    background:
+      radial-gradient(500px 200px at 92% 0%, rgb(255 255 255 / 16%), transparent 70%),
+      linear-gradient(115deg, #0755d4, #0866ff);
+    color: #fff;
+  }
+  .payment-slide-icon {
+    display: grid;
+    width: 52px;
+    height: 52px;
+    flex: 0 0 52px;
+    place-items: center;
+    border: 1px solid rgb(255 255 255 / 28%);
+    border-radius: 16px;
+    background: rgb(255 255 255 / 13%);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 15%);
+  }
+  .payment-slide-icon svg {
+    width: 25px;
+    height: 25px;
+  }
+  .payment-slide-heading p {
+    margin: 0 0 3px;
+    color: rgb(255 255 255 / 72%);
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+  }
+  .payment-slide-heading h3 {
+    margin: 0;
+    font-size: clamp(1.15rem, 2.5vw, 1.55rem);
+    font-weight: 750;
+    letter-spacing: -.02em;
+  }
+  .payment-method-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 235px), 1fr));
+    gap: 12px;
+    margin: 0;
+    padding: clamp(18px, 3vw, 30px);
+    list-style: none;
+  }
+  .payment-method-card {
+    display: flex;
+    min-height: 68px;
+    min-width: 0;
+    align-items: center;
+    gap: 13px;
+    padding: 12px 14px;
+    border: 1px solid #e4e9f0;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #fff, #fbfcfe);
+    color: #27364a;
+    font-size: .9rem;
+    font-weight: 650;
+    line-height: 1.35;
+    transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+  }
+  .payment-method-card:hover {
+    transform: translateY(-2px);
+    border-color: #9ec5ff;
+    box-shadow: 0 8px 20px rgb(8 102 255 / 10%);
+  }
+  .payment-method-mark {
+    display: grid;
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    place-items: center;
+    border-radius: 11px;
+    background: #eaf2ff;
+    color: #0755d4;
+    font-size: 1rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+  .payment-method-mark svg {
+    width: 20px;
+    height: 20px;
+  }
+  .payment-method-arrow {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    margin-left: auto;
+    color: #97a4b5;
+  }
+  .payment-slide-footer {
+    display: flex;
+    min-height: 54px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 clamp(18px, 3vw, 30px);
+    border-top: 1px solid #edf0f4;
+    color: #788598;
+    font-size: .75rem;
+    font-weight: 600;
+  }
+  .payment-slide-indicator {
+    width: 8px;
+    height: 8px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: #c7cbd1;
+    cursor: pointer;
+    transition: width .2s ease, background-color .2s ease;
+  }
+  .payment-slide-indicator.is-active {
+    width: 24px;
+    background: #0866ff;
+  }
+  .payment-carousel-control {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border: 1px solid #dce3ed;
+    border-radius: 50%;
+    background: #fff;
+    color: #27364a;
+    box-shadow: 0 2px 6px rgb(28 48 78 / 6%);
+    cursor: pointer;
+    font-size: 1.15rem;
+    transition: border-color .2s ease, background-color .2s ease, color .2s ease, transform .2s ease;
+  }
+  .payment-carousel-control:hover {
+    transform: translateY(-1px);
+    border-color: #9ec5ff;
+    background: #f2f7ff;
+    color: #0755d4;
+  }
+}
+
+@keyframes payment-slide-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
