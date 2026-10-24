@@ -504,6 +504,7 @@ export default function WaterBillInquiry({ onBack }) {
     setMobileMenuOpen(false);
     setLogoutConfirmOpen(false);
     clearSearch();
+    onBack();
   }
 
   const tabTitles = {
