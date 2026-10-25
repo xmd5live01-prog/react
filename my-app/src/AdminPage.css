@@ -60,19 +60,15 @@
   height: 39px;
   flex: 0 0 39px;
   place-items: center;
-  border-radius: 12px;
-  background: linear-gradient(145deg, #0755d4, #2d83ff);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 850;
-  letter-spacing: -.06em;
-  box-shadow: 0 5px 12px rgb(8 102 255 / 20%);
+  color: var(--cms-blue);
 }
 
-.cms-brand-mark span,
-.cms-login-mark span {
-  margin-left: -2px;
-  color: #b7d3ff;
+.cms-water-logo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 3px 5px rgb(8 102 255 / 24%));
 }
 
 .cms-side-label {
@@ -1467,6 +1463,7 @@
 .cms-login-mark {
   width: 48px;
   height: 48px;
+  flex-basis: 48px;
   margin-bottom: 22px;
 }
 

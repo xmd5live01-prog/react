@@ -91,6 +91,15 @@ const COLLECTIONS = {
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
+function WaterLogo() {
+  return (
+    <svg aria-hidden="true" className="cms-water-logo" viewBox="0 0 40 40">
+      <path d="M20 3C12 14 6 21 6 27a14 14 0 0 0 28 0c0-6-6-13-14-24z" fill="currentColor" />
+      <path d="M12 28c3-3 5-3 8 0s5 3 8 0" fill="none" stroke="#fff" strokeLinecap="round" strokeWidth="2.2" />
+    </svg>
+  );
+}
+
 function RichTextEditor({ value, disabled, onChange }) {
   const editorRef = useRef(null);
   const savedSelectionRef = useRef(null);
@@ -236,9 +245,9 @@ function LoginScreen({ onLogin, onGoogleLogin, onResetPassword, busy, error, not
   return (
     <main className="cms-login-shell">
       <form className="cms-login-card" onSubmit={(event) => { event.preventDefault(); onLogin(email, password); }}>
-        <div className="cms-login-mark">H<span>W</span></div>
+        <div className="cms-login-mark"><WaterLogo /></div>
         <p className="cms-eyebrow">HINUNANGAN WATER SYSTEM</p>
-        <h1>Sign in to your CMS</h1>
+        <h1>Sign in to Admin Page</h1>
         <p className="cms-login-description">Manage the public website, announcements, services, and payment information.</p>
         {error && <p className="cms-alert cms-alert-error" role="alert">{error}</p>}
         <button className="cms-google-button" disabled={busy} onClick={onGoogleLogin} type="button">
@@ -257,7 +266,7 @@ function LoginScreen({ onLogin, onGoogleLogin, onResetPassword, busy, error, not
           Forgot password?
         </button>
         {notice && <p className="cms-alert cms-alert-success" role="status">{notice}</p>}
-        <p className="cms-login-footnote">Google sign-in only grants CMS access to email addresses approved by the site administrator.</p>
+        <p className="cms-login-footnote">Google sign-in only grants Admin Page access to email addresses approved by the site administrator.</p>
       </form>
     </main>
   );
@@ -279,9 +288,9 @@ function PasswordRecoveryScreen({ busy, error, onUpdatePassword }) {
   return (
     <main className="cms-login-shell">
       <form className="cms-login-card" onSubmit={submit}>
-        <div className="cms-login-mark">H<span>W</span></div>
+        <div className="cms-login-mark"><WaterLogo /></div>
         <p className="cms-eyebrow">HINUNANGAN WATER SYSTEM</p>
-        <h1>Set your CMS password</h1>
+        <h1>Set your Admin Page password</h1>
         <p className="cms-login-description">Choose a new password for your administrator account.</p>
         {error && <p className="cms-alert cms-alert-error" role="alert">{error}</p>}
         <label htmlFor="cms-new-password">New password</label>
@@ -852,8 +861,8 @@ export default function AdminPage({ onPreview, onPublicSite }) {
     <div className="cms-admin">
       <aside className="cms-sidebar">
         <button className="cms-brand" onClick={onPublicSite} type="button">
-          <span className="cms-brand-mark">H<span>W</span></span>
-          <span>Water CMS<small>Hinunangan Water System</small></span>
+          <span className="cms-brand-mark"><WaterLogo /></span>
+          <span>Admin Page<small>Hinunangan Water System</small></span>
         </button>
         <div className="cms-side-label">WORKSPACE</div>
         <nav aria-label="CMS sections" className="cms-nav">
