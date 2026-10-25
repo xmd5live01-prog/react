@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BUILT_IN_SECTIONS,
   DEFAULT_CMS_CONTENT,
   DEFAULT_SECTION_ORDER,
   normalizeCmsContent,
 } from "./cmsContent";
+import { sanitizeRichText } from "./richText";
 import { isSupabaseConfigured, supabase } from "./supabaseClient";
 import "./AdminPage.css";
 
@@ -89,6 +90,124 @@ const COLLECTIONS = {
 };
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
+
+function RichTextEditor({ value, disabled, onChange }) {
+  const editorRef = useRef(null);
+  const savedSelectionRef = useRef(null);
+  const initialValueRef = useRef(value);
+
+  useEffect(() => {
+    if (editorRef.current) editorRef.current.innerHTML = sanitizeRichText(initialValueRef.current);
+  }, []);
+
+  function rememberSelection() {
+    const selection = window.getSelection();
+    if (!selection?.rangeCount || !editorRef.current?.contains(selection.anchorNode)) return;
+    savedSelectionRef.current = selection.getRangeAt(0).cloneRange();
+  }
+
+  function restoreSelection() {
+    editorRef.current?.focus();
+    const selection = window.getSelection();
+    const range = savedSelectionRef.current;
+    if (!selection || !range || !editorRef.current?.contains(range.commonAncestorContainer)) return;
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+
+  function runCommand(command, argument = null) {
+    restoreSelection();
+    document.execCommand("styleWithCSS", false, "true");
+    document.execCommand(command, false, argument);
+    rememberSelection();
+    onChange(sanitizeRichText(editorRef.current?.innerHTML ?? ""));
+  }
+
+  function insertLink() {
+    const href = window.prompt("Enter a website URL or page anchor (for example, https://example.com or #services):");
+    if (!href?.trim()) return;
+    runCommand("createLink", href.trim());
+  }
+
+  const tools = [
+    ["bold", "Bold", "B"],
+    ["italic", "Italic", "I"],
+    ["underline", "Underline", "U"],
+    ["strikeThrough", "Strikethrough", "S"],
+    ["formatBlock", "Heading 2", "H2", "<h2>"],
+    ["formatBlock", "Heading 3", "H3", "<h3>"],
+    ["formatBlock", "Heading 4", "H4", "<h4>"],
+    ["formatBlock", "Quote", "❝", "<blockquote>"],
+    ["formatBlock", "Paragraph", "¶", "<p>"],
+    ["insertHorizontalRule", "Horizontal line", "―"],
+    ["insertUnorderedList", "Bulleted list", "• List"],
+    ["insertOrderedList", "Numbered list", "1. List"],
+    ["justifyLeft", "Align left", "⇤"],
+    ["justifyCenter", "Align center", "↔"],
+    ["justifyRight", "Align right", "⇥"],
+    ["indent", "Indent", "→"],
+    ["outdent", "Outdent", "←"],
+  ];
+
+  return (
+    <div className={`cms-rich-editor${disabled ? " is-disabled" : ""}`}>
+      <div aria-label="Text formatting" className="cms-rich-toolbar" role="toolbar" onMouseDown={rememberSelection}>
+        {tools.map(([command, label, symbol, argument]) => (
+          <button
+            aria-label={label}
+            disabled={disabled}
+            key={`${command}-${label}`}
+            onClick={() => runCommand(command, argument ?? null)}
+            onMouseDown={(event) => { rememberSelection(); event.preventDefault(); }}
+            title={label}
+            type="button"
+          >
+            {symbol}
+          </button>
+        ))}
+        <button aria-label="Insert link" disabled={disabled} onClick={insertLink} onMouseDown={rememberSelection} title="Insert link" type="button">↗ Link</button>
+        <button aria-label="Remove formatting" disabled={disabled} onClick={() => runCommand("removeFormat")} onMouseDown={(event) => { rememberSelection(); event.preventDefault(); }} title="Remove formatting" type="button">Tx</button>
+        <label className="cms-rich-color" title="Text color">
+          <span aria-hidden="true">A</span>
+          <input aria-label="Text color" disabled={disabled} onChange={(event) => runCommand("foreColor", event.target.value)} onMouseDown={rememberSelection} type="color" />
+        </label>
+        <label className="cms-rich-color cms-rich-highlight" title="Highlight color">
+          <span aria-hidden="true">▰</span>
+          <input aria-label="Highlight color" disabled={disabled} onChange={(event) => runCommand("hiliteColor", event.target.value)} onMouseDown={rememberSelection} type="color" />
+        </label>
+        <select
+          aria-label="Font size"
+          disabled={disabled}
+          defaultValue="3"
+          onChange={(event) => { if (event.target.value) runCommand("fontSize", event.target.value); }}
+          onMouseDown={rememberSelection}
+          title="Font size"
+        >
+          <option value="3">Normal</option>
+          <option value="2">Small</option>
+          <option value="4">Large</option>
+          <option value="5">Extra large</option>
+          <option value="6">Title</option>
+        </select>
+        <button aria-label="Undo" disabled={disabled} onClick={() => runCommand("undo")} onMouseDown={(event) => { rememberSelection(); event.preventDefault(); }} title="Undo" type="button">↶</button>
+        <button aria-label="Redo" disabled={disabled} onClick={() => runCommand("redo")} onMouseDown={(event) => { rememberSelection(); event.preventDefault(); }} title="Redo" type="button">↷</button>
+      </div>
+      <div
+        aria-label="Custom section text"
+        aria-multiline="true"
+        className="cms-rich-content"
+        contentEditable={!disabled}
+        onInput={(event) => onChange(sanitizeRichText(event.currentTarget.innerHTML))}
+        onKeyUp={rememberSelection}
+        onMouseUp={rememberSelection}
+        ref={editorRef}
+        role="textbox"
+        suppressContentEditableWarning
+      />
+      <p className="cms-rich-help">Format text with headings, lists, links, alignment, text size, color, and highlights.</p>
+    </div>
+  );
+}
 
 function Icon({ name }) {
   const paths = {
@@ -854,7 +973,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
                         </div>
                         <div className="cms-custom-section-fields">
                           <label className="cms-field"><span>Section heading</span><input disabled={busy} onChange={(event) => updateCustomSection(section.id, "title", event.target.value)} value={section.title} /></label>
-                          <label className="cms-field cms-field-text"><span>Text</span><textarea disabled={busy} onChange={(event) => updateCustomSection(section.id, "text", event.target.value)} rows={4} value={section.text} /></label>
+                          <div className="cms-field cms-field-text"><span>Content</span><RichTextEditor disabled={busy} onChange={(value) => updateCustomSection(section.id, "text", value)} value={section.text} /></div>
                           <label className="cms-field"><span>Layout</span><select disabled={busy} onChange={(event) => updateCustomSection(section.id, "layout", event.target.value)} value={section.layout}><option value="text">Text only</option><option value="image-left">Image left</option><option value="image-right">Image right</option><option value="centered">Centered</option></select></label>
                           <label className="cms-field"><span>Background</span><select disabled={busy} onChange={(event) => updateCustomSection(section.id, "background", event.target.value)} value={section.background}><option value="surface">Surface</option><option value="page">Page background</option><option value="primary">Primary color</option></select></label>
                           <label className="cms-field"><span>Button label (optional)</span><input disabled={busy} onChange={(event) => updateCustomSection(section.id, "buttonText", event.target.value)} value={section.buttonText} /></label>

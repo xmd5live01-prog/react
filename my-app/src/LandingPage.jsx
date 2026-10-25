@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import heroImg from "./assets/hero.jpg";
 import { DEFAULT_CMS_CONTENT, normalizeCmsContent } from "./cmsContent";
+import { sanitizeRichText } from "./richText";
 import "./LandingPage.css";
 
 const SLIDES = [
@@ -419,7 +420,7 @@ export default function LandingPage({
               )}
               <div className="custom-content-copy">
                 {section.title && <h2 className={h2}>{section.title}</h2>}
-                {section.text && <p className="site-muted whitespace-pre-line">{section.text}</p>}
+                {section.text && <div className="site-muted rich-text-content" dangerouslySetInnerHTML={{ __html: sanitizeRichText(section.text) }} />}
                 {section.buttonText && section.buttonUrl && (
                   <a className="custom-content-button site-primary-bg" href={getSafeSectionLink(section.buttonUrl)} rel="noreferrer" target={/^https?:\/\//i.test(section.buttonUrl.trim()) ? "_blank" : undefined}>
                     {section.buttonText}
