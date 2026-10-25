@@ -430,6 +430,14 @@ export default function AdminPage({ onPreview, onPublicSite }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
       if (nextSession || event === "SIGNED_OUT") setError("");
+      if (event === "SIGNED_OUT") {
+        setIsCmsUser(false);
+        setIsAdmin(false);
+        setAccessPermissions([]);
+        setAdminCheckedUserId(null);
+        setManagedUsers([]);
+        setContentLoaded(false);
+      }
       if (event === "PASSWORD_RECOVERY") setPasswordRecovery(true);
     });
     return () => {
@@ -496,7 +504,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
   }, [userId, contentRetry]);
 
   useEffect(() => {
-    if (!isAdmin) return undefined;
+    if (!isAdmin || !userId) return undefined;
 
     let mounted = true;
     supabase.from("cms_users").select("user_id,email,role,permissions,active,created_at").order("created_at", { ascending: false })
