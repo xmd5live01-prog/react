@@ -94,6 +94,77 @@ Deno.serve(async (req) => {
   }
 
   const body = input as Record<string, unknown>;
+  const action = body.action;
+  if (action === "set_active") {
+    const userId = typeof body.userId === "string" ? body.userId : "";
+    const active = body.active;
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId)) {
+      return jsonResponse({ error: "Choose a valid CMS user." }, 400, origin);
+    }
+    if (typeof active !== "boolean") {
+      return jsonResponse({ error: "Choose whether the CMS user should be active." }, 400, origin);
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error("CMS user management is missing Supabase environment variables.");
+      return jsonResponse({ error: "User management is not configured on the server." }, 503, origin);
+    }
+
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const { data: callerResult, error: callerError } = await supabase.auth.getUser(accessToken);
+    if (callerError || !callerResult.user) {
+      return jsonResponse({ error: "Your sign-in session is invalid or expired." }, 401, origin);
+    }
+
+    const { data: updatedUsers, error: updateError } = await supabase.rpc(
+      "cms_set_user_active",
+      {
+        p_actor_id: callerResult.user.id,
+        p_user_id: userId,
+        p_active: active,
+      },
+    );
+    if (updateError) {
+      const status = updateError.code === "42501" ? 403 : 400;
+      return jsonResponse({ error: updateError.message }, status, origin);
+    }
+
+    const updatedUser = updatedUsers?.[0];
+    if (!updatedUser) {
+      return jsonResponse({ error: "The CMS user status could not be updated." }, 500, origin);
+    }
+
+    const { error: authUpdateError } = await supabase.auth.admin.updateUserById(
+      userId,
+      { ban_duration: active ? "none" : "876000h" },
+    );
+    if (authUpdateError) {
+      const { error: rollbackError } = await supabase.rpc("cms_set_user_active", {
+        p_actor_id: callerResult.user.id,
+        p_user_id: userId,
+        p_active: !active,
+      });
+      if (rollbackError) {
+        console.error("Could not roll back CMS access after Auth status update failed:", rollbackError.message);
+      }
+      console.error("Supabase Auth status update failed:", authUpdateError.message);
+      return jsonResponse({
+        error: rollbackError
+          ? "The account status could not be synchronized. Contact support before retrying."
+          : "The account status was not changed because Supabase Auth could not update the user.",
+      }, 500, origin);
+    }
+
+    return jsonResponse({ user: updatedUser }, 200, origin);
+  }
+
+  if (action !== undefined && action !== "create") {
+    return jsonResponse({ error: "Choose a supported user-management action." }, 400, origin);
+  }
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   const password = typeof body.password === "string" ? body.password : "";
   const role = body.role;
@@ -137,14 +208,14 @@ Deno.serve(async (req) => {
 
   const { data: callerRole, error: roleError } = await supabase
     .from("cms_users")
-    .select("role")
+    .select("role,active")
     .eq("user_id", callerResult.user.id)
     .maybeSingle();
   if (roleError) {
     console.error("CMS administrator authorization check failed:", roleError.message);
     return jsonResponse({ error: "Unable to verify Administrator access." }, 500, origin);
   }
-  if (callerRole?.role !== "admin") {
+  if (callerRole?.role !== "admin" || !callerRole.active) {
     return jsonResponse({ error: "Administrator access is required to add users." }, 403, origin);
   }
 

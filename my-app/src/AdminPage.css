@@ -799,6 +799,39 @@
   line-height: 1.5;
 }
 
+.cms-managed-user.is-inactive {
+  background: #f8f9fb;
+}
+
+.cms-user-status-button {
+  min-height: 36px;
+  grid-column: 2;
+  grid-row: 3;
+  padding: 0 12px;
+  border: 1px solid var(--cms-line);
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.cms-user-status-button.is-deactivate {
+  border-color: #f4c9c5;
+  color: #b42318;
+}
+
+.cms-user-status-button.is-activate {
+  border-color: #b7d7ca;
+  color: #157347;
+}
+
+.cms-user-status-button:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
 .cms-branding-card {
   max-width: 900px;
   margin-top: 16px;
@@ -2135,6 +2168,12 @@
   .cms-managed-user p {
     font-size: 11px;
     line-height: 1.5;
+  }
+
+  .cms-user-status-button {
+    min-height: 44px;
+    padding-inline: 10px;
+    font-size: 12px;
   }
 
   .cms-layout-row {

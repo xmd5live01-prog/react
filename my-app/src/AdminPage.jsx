@@ -396,6 +396,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
   const [newUserRole, setNewUserRole] = useState("editor");
   const [newUserPermissions, setNewUserPermissions] = useState(["edit_sections", "save_draft"]);
   const [addingUser, setAddingUser] = useState(false);
+  const [updatingUserId, setUpdatingUserId] = useState("");
   const [published, setPublished] = useState(null);
   const [hasDraft, setHasDraft] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -491,7 +492,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
     if (!isAdmin) return undefined;
 
     let mounted = true;
-    supabase.from("cms_users").select("email,role,permissions,created_at").order("created_at", { ascending: false })
+    supabase.from("cms_users").select("user_id,email,role,permissions,active,created_at").order("created_at", { ascending: false })
       .then(({ data, error: usersError }) => {
         if (!mounted) return;
         if (usersError) setError(usersError.message);
@@ -889,7 +890,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
 
       const { data, error: usersError } = await supabase
         .from("cms_users")
-        .select("email,role,permissions,created_at")
+        .select("user_id,email,role,permissions,active,created_at")
         .order("created_at", { ascending: false });
       if (usersError) {
         setError(`Account created, but the user list could not be refreshed: ${usersError.message}`);
@@ -903,6 +904,38 @@ export default function AdminPage({ onPreview, onPublicSite }) {
       setError(createError instanceof Error ? createError.message : "Unable to create the CMS user.");
     } finally {
       setAddingUser(false);
+    }
+  }
+
+  async function setManagedUserActive(user, active) {
+    if (!active && !window.confirm(`Deactivate ${user.email}? They will lose CMS access and be signed out.`)) return;
+
+    setUpdatingUserId(user.user_id);
+    setError("");
+    setNotice("");
+    try {
+      const { error: updateError } = await supabase.functions.invoke("manage-cms-users", {
+        body: { action: "set_active", userId: user.user_id, active },
+      });
+      if (updateError) {
+        setError(await getFunctionErrorMessage(updateError));
+        return;
+      }
+
+      const { data, error: usersError } = await supabase
+        .from("cms_users")
+        .select("user_id,email,role,permissions,active,created_at")
+        .order("created_at", { ascending: false });
+      if (usersError) {
+        setError(`User status changed, but the user list could not be refreshed: ${usersError.message}`);
+      } else {
+        setManagedUsers(data ?? []);
+        setNotice(`${user.email} ${active ? "reactivated" : "deactivated"} successfully.`);
+      }
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : "Unable to update this CMS user's status.");
+    } finally {
+      setUpdatingUserId("");
     }
   }
 
@@ -1087,14 +1120,23 @@ export default function AdminPage({ onPreview, onPublicSite }) {
                     <button className="cms-primary-button" disabled={addingUser} type="submit">{addingUser ? "Adding user..." : "Add user"}</button>
                   </form>
                   <section className="cms-info-card cms-managed-users">
-                    <div className="cms-branding-heading"><div><h3>CMS users</h3><p>{managedUsers.length} account{managedUsers.length === 1 ? "" : "s"} with CMS access</p></div></div>
+                    <div className="cms-branding-heading"><div><h3>CMS users</h3><p>{managedUsers.filter((user) => user.active).length} active of {managedUsers.length} account{managedUsers.length === 1 ? "" : "s"}</p></div></div>
                     {managedUsers.length ? (
                       <div className="cms-managed-user-list">
                         {managedUsers.map((user) => (
-                          <article className="cms-managed-user" key={user.email}>
+                          <article className={`cms-managed-user${user.active ? "" : " is-inactive"}`} key={user.user_id}>
                             <div><strong>{user.email}</strong><small>Added {new Date(user.created_at).toLocaleDateString()}</small></div>
-                            <span className={`cms-status-pill ${user.role === "admin" ? "is-active" : "is-draft"}`}>{user.role === "admin" ? "Administrator" : "Editor"}</span>
-                            <p>{user.role === "admin" ? "All CMS permissions" : CMS_PERMISSIONS.filter(([permission]) => user.permissions?.includes(permission)).map(([, label]) => label).join(", ") || "No permissions assigned"}</p>
+                            <span className={`cms-status-pill ${user.active ? "is-active" : "is-draft"}`}>{user.active ? (user.role === "admin" ? "Administrator" : "Editor") : "Deactivated"}</span>
+                            <p>{user.active ? (user.role === "admin" ? "All CMS permissions" : CMS_PERMISSIONS.filter(([permission]) => user.permissions?.includes(permission)).map(([, label]) => label).join(", ") || "No permissions assigned") : `Inactive ${user.role === "admin" ? "Administrator" : "Editor"} account`}</p>
+                            <button
+                              className={`cms-user-status-button${user.active ? " is-deactivate" : " is-activate"}`}
+                              disabled={updatingUserId !== "" || user.user_id === userId}
+                              onClick={() => setManagedUserActive(user, !user.active)}
+                              title={user.user_id === userId ? "You cannot change your own account status" : undefined}
+                              type="button"
+                            >
+                              {updatingUserId === user.user_id ? "Updating..." : user.active ? "Deactivate" : "Reactivate"}
+                            </button>
                           </article>
                         ))}
                       </div>
