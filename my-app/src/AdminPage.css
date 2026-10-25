@@ -1650,9 +1650,50 @@
     flex-basis: 38px;
   }
 
-  .cms-side-label,
-  .cms-sidebar-bottom {
+  .cms-side-label {
     display: none;
+  }
+
+  .cms-sidebar-bottom {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+    padding: 8px 2px 0;
+  }
+
+  .cms-user-badge {
+    flex: 1 1 auto;
+    gap: 8px;
+    overflow: hidden;
+    padding: 2px;
+  }
+
+  .cms-user-badge > span {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+  }
+
+  .cms-user-badge strong {
+    font-size: 12px;
+  }
+
+  .cms-user-badge small {
+    font-size: 11px;
+  }
+
+  .cms-logout-button {
+    min-height: 44px;
+    flex: 0 0 auto;
+    gap: 8px;
+    padding: 0 12px;
+    border: 1px solid #e4e7ec;
+    border-radius: 10px;
+    background: #fff;
+    color: #b42318;
+    font-size: 13px;
+    font-weight: 650;
   }
 
   .cms-nav {
