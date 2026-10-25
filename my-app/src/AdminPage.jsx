@@ -846,6 +846,27 @@ export default function AdminPage({ onPreview, onPublicSite }) {
     setBusy(false);
   }
 
+  async function getFunctionErrorMessage(functionError) {
+    const response = functionError?.context;
+    if (!(response instanceof Response)) return functionError?.message ?? "Unable to create the CMS user.";
+
+    let responseBody;
+    try {
+      responseBody = await response.clone().json();
+    } catch {
+      return `User creation failed (${response.status}). ${functionError.message}`;
+    }
+
+    const detail = typeof responseBody?.error === "string"
+      ? responseBody.error
+      : typeof responseBody?.message === "string"
+        ? responseBody.message
+        : "";
+    return detail
+      ? `User creation failed (${response.status}): ${detail}`
+      : `User creation failed (${response.status}). ${functionError.message}`;
+  }
+
   async function addManagedUser(event) {
     event.preventDefault();
     setAddingUser(true);
@@ -862,7 +883,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
         },
       });
       if (createError) {
-        setError(createError.message);
+        setError(await getFunctionErrorMessage(createError));
         return;
       }
 
