@@ -56,7 +56,6 @@ const StoreButton = ({ logo, small, name }) => (
 
 export default function LandingPage({
   onSearchBill,
-  onOpenAdmin,
   content: contentInput = DEFAULT_CMS_CONTENT,
   preview = false,
   onExitPreview,
@@ -124,7 +123,7 @@ export default function LandingPage({
       }}
     >
       {/* NAV (scrolls with the page) */}
-      <header className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-[clamp(16px,5vw,64px)] pt-[calc(16px+env(safe-area-inset-top,0px))] pb-4 text-white">
+      <header className="landing-site-header absolute inset-x-0 top-0 z-20 flex items-center justify-between px-[clamp(16px,5vw,64px)] pt-[calc(16px+env(safe-area-inset-top,0px))] pb-4 text-white">
         <a href="#top" className="flex items-center gap-2.5 font-display text-[1.1rem] font-medium">
           {content.siteLogoImage ? (
             <img alt="" className="site-header-logo" src={content.siteLogoImage} />
@@ -140,7 +139,6 @@ export default function LandingPage({
           <a className="site-link hidden md:inline" href="#services">Services</a>
           <a className="site-link hidden md:inline" href="#how">How it works</a>
           <a className="site-link hidden md:inline" href="#app">Mobile app</a>
-          {onOpenAdmin && <button type="button" onClick={onOpenAdmin} className="site-link hidden md:inline">Admin</button>}
           <button type="button" onClick={onSearchBill} className="site-primary-bg inline-flex items-center gap-2 rounded-full px-[18px] py-[9px] font-bold text-white shadow-[0_8px_24px_rgba(8,102,255,.35)]">
             <SearchIcon />Search Bill
           </button>

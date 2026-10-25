@@ -63,6 +63,7 @@ export default function App() {
 
   const openAdmin = useCallback(() => {
     setShowBillPortal(false);
+    setPreviewContent(null);
     window.location.hash = "/admin";
   }, []);
 
@@ -98,8 +99,7 @@ export default function App() {
     <LandingPage
       content={isPreview ? previewContent : publishedContent}
       contentError={isPreview ? "" : contentError}
-      onExitPreview={openPublicSite}
-      onOpenAdmin={openAdmin}
+      onExitPreview={openAdmin}
       onSearchBill={() => setShowBillPortal(true)}
       preview={isPreview}
     />

@@ -26,9 +26,9 @@ const SITE_COLORS = [
 ];
 const LANDING_TEMPLATES = [
   ["classic", "Current layout", "Services, payments, then steps. Keep the existing look and section order."],
-  ["modern-minimal", "Modern Minimal", "Payments first, then services and steps, with a cleaner hero and card style."],
-  ["warm-community", "Warm Community", "Services and steps first, with a softer, more welcoming presentation."],
-  ["elegant-water", "Elegant Water", "A centered hero, followed by payments, steps, and services."],
+  ["modern-minimal", "Modern Minimal", "A clean, utility-focused design with payments first and structured sections."],
+  ["warm-community", "Warm Community", "A civic, public-service presentation with services first and a restrained warm palette."],
+  ["elegant-water", "Elegant Water", "A premium water-service look with a centered hero and clear section hierarchy."],
 ];
 const MAX_MEDIA_SIZE = 5 * 1024 * 1024;
 const MEDIA_TYPES = {

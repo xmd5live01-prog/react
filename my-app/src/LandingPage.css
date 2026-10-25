@@ -15,6 +15,87 @@
     color: var(--site-text);
     background-color: var(--site-page);
   }
+  .landing-site[data-template="modern-minimal"] .landing-site-header,
+  .landing-site[data-template="warm-community"] .landing-site-header,
+  .landing-site[data-template="elegant-water"] .landing-site-header {
+    border-bottom: 1px solid rgb(255 255 255 / 14%);
+    background: rgb(10 27 49 / 24%);
+    backdrop-filter: blur(14px);
+  }
+  .landing-site[data-template="modern-minimal"] .landing-site-header a,
+  .landing-site[data-template="warm-community"] .landing-site-header a,
+  .landing-site[data-template="elegant-water"] .landing-site-header a {
+    text-decoration: none;
+  }
+  .landing-site[data-template="modern-minimal"] .landing-hero-section,
+  .landing-site[data-template="warm-community"] .landing-hero-section,
+  .landing-site[data-template="elegant-water"] .landing-hero-section {
+    background-image:
+      linear-gradient(115deg, color-mix(in srgb, var(--site-accent) 90%, #102943), color-mix(in srgb, var(--site-primary) 78%, #102943));
+  }
+  .landing-site[data-template="modern-minimal"] .landing-hero-section > .pointer-events-none,
+  .landing-site[data-template="warm-community"] .landing-hero-section > .pointer-events-none,
+  .landing-site[data-template="elegant-water"] .landing-hero-section > .pointer-events-none {
+    display: none;
+  }
+  .landing-site[data-template="modern-minimal"] .landing-hero-section > svg path,
+  .landing-site[data-template="warm-community"] .landing-hero-section > svg path,
+  .landing-site[data-template="elegant-water"] .landing-hero-section > svg path {
+    fill: var(--site-page);
+  }
+  .landing-site[data-template="modern-minimal"] .landing-hero-section > svg path:first-child,
+  .landing-site[data-template="warm-community"] .landing-hero-section > svg path:first-child,
+  .landing-site[data-template="elegant-water"] .landing-hero-section > svg path:first-child {
+    opacity: .28;
+  }
+  .landing-site[data-template="modern-minimal"] .landing-hero-slide .animate-ring,
+  .landing-site[data-template="warm-community"] .landing-hero-slide .animate-ring,
+  .landing-site[data-template="elegant-water"] .landing-hero-slide .animate-ring {
+    animation: none;
+    border-color: rgb(255 255 255 / 18%);
+  }
+  .landing-site[data-template="modern-minimal"] .landing-hero-slide svg,
+  .landing-site[data-template="warm-community"] .landing-hero-slide svg,
+  .landing-site[data-template="elegant-water"] .landing-hero-slide svg {
+    animation: none;
+  }
+  .landing-site[data-template="modern-minimal"] .landing-hero-slide button,
+  .landing-site[data-template="modern-minimal"] .landing-hero-slide a,
+  .landing-site[data-template="warm-community"] .landing-hero-slide button,
+  .landing-site[data-template="warm-community"] .landing-hero-slide a,
+  .landing-site[data-template="elegant-water"] .landing-hero-slide button,
+  .landing-site[data-template="elegant-water"] .landing-hero-slide a {
+    border-radius: 8px;
+    box-shadow: none;
+  }
+  .landing-site[data-template="modern-minimal"] .landing-services-section > div > div > div,
+  .landing-site[data-template="warm-community"] .landing-services-section > div > div > div,
+  .landing-site[data-template="elegant-water"] .landing-services-section > div > div > div {
+    border: 1px solid color-mix(in srgb, var(--site-muted) 22%, transparent);
+    box-shadow: 0 8px 24px rgb(13 35 59 / 5%);
+  }
+  .landing-site[data-template="modern-minimal"] .payment-carousel-frame,
+  .landing-site[data-template="warm-community"] .payment-carousel-frame,
+  .landing-site[data-template="elegant-water"] .payment-carousel-frame {
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgb(13 35 59 / 7%);
+  }
+  .landing-site[data-template="modern-minimal"] .payment-slide-heading,
+  .landing-site[data-template="warm-community"] .payment-slide-heading,
+  .landing-site[data-template="elegant-water"] .payment-slide-heading {
+    background-image: linear-gradient(115deg, color-mix(in srgb, var(--site-accent) 90%, #102943), color-mix(in srgb, var(--site-primary) 82%, #102943));
+  }
+  .landing-site[data-template="modern-minimal"] .payment-method-card,
+  .landing-site[data-template="warm-community"] .payment-method-card,
+  .landing-site[data-template="elegant-water"] .payment-method-card {
+    border-radius: 8px;
+    box-shadow: none;
+  }
+  .landing-site[data-template="modern-minimal"] .landing-steps-section li > span,
+  .landing-site[data-template="warm-community"] .landing-steps-section li > span,
+  .landing-site[data-template="elegant-water"] .landing-steps-section li > span {
+    border-radius: 9px;
+  }
   .landing-site[data-template="modern-minimal"] .landing-payment-section {
     order: 1;
   }
@@ -35,6 +116,18 @@
   .landing-site[data-template="modern-minimal"] .landing-services-section > div > div > div {
     border-radius: 14px;
   }
+  .landing-site[data-template="modern-minimal"] .landing-hero-section {
+    background-image:
+      radial-gradient(ellipse at 78% 25%, color-mix(in srgb, var(--site-primary) 42%, transparent), transparent 42%),
+      linear-gradient(125deg, #102943, color-mix(in srgb, var(--site-accent) 45%, #102943) 58%, #163c5a);
+  }
+  .landing-site[data-template="modern-minimal"] .landing-services-section,
+  .landing-site[data-template="modern-minimal"] .landing-steps-section {
+    background-color: color-mix(in srgb, var(--site-page) 62%, white);
+  }
+  .landing-site[data-template="modern-minimal"] .landing-services-section > div > div > div {
+    border-radius: 8px;
+  }
   .landing-site[data-template="warm-community"] .landing-services-section {
     order: 1;
   }
@@ -46,11 +139,24 @@
   }
   .landing-site[data-template="warm-community"] .landing-hero-section {
     margin: 12px 12px 0;
-    border-radius: 28px;
+    border-radius: 16px;
   }
   .landing-site[data-template="warm-community"] .landing-services-section > div > div > div {
-    border-radius: 28px 28px 28px 8px;
+    border-radius: 12px;
     box-shadow: 0 12px 30px color-mix(in srgb, var(--site-primary) 9%, transparent);
+  }
+  .landing-site[data-template="warm-community"] .landing-hero-section {
+    background-image:
+      radial-gradient(ellipse at 78% 20%, color-mix(in srgb, var(--site-primary) 35%, transparent), transparent 46%),
+      linear-gradient(125deg, #20364a, color-mix(in srgb, var(--site-accent) 46%, #20364a) 60%, #314b5d);
+  }
+  .landing-site[data-template="warm-community"] .landing-services-section,
+  .landing-site[data-template="warm-community"] .landing-payment-section,
+  .landing-site[data-template="warm-community"] .landing-steps-section {
+    background-color: color-mix(in srgb, var(--site-page) 74%, #f7f1e8);
+  }
+  .landing-site[data-template="warm-community"] .landing-steps-section li > span {
+    border-radius: 50%;
   }
   .landing-site[data-template="elegant-water"] .landing-payment-section {
     order: 1;
@@ -64,6 +170,11 @@
   .landing-site[data-template="elegant-water"] .landing-hero-section {
     min-height: 92svh;
   }
+  .landing-site[data-template="elegant-water"] .landing-hero-section {
+    background-image:
+      radial-gradient(ellipse at 50% 16%, color-mix(in srgb, var(--site-primary) 42%, transparent), transparent 48%),
+      linear-gradient(155deg, #102d3b, color-mix(in srgb, var(--site-accent) 48%, #102d3b) 56%, #17495a);
+  }
   .landing-site[data-template="elegant-water"] .landing-hero-slide > div:first-child {
     max-width: 760px;
     margin-inline: auto;
@@ -74,8 +185,13 @@
     text-align: center;
   }
   .landing-site[data-template="elegant-water"] .landing-services-section > div > div > div {
-    border-radius: 30px;
+    border-radius: 12px;
     text-align: center;
+  }
+  .landing-site[data-template="elegant-water"] .landing-services-section,
+  .landing-site[data-template="elegant-water"] .landing-payment-section,
+  .landing-site[data-template="elegant-water"] .landing-steps-section {
+    background-color: color-mix(in srgb, var(--site-page) 65%, #edf5f5);
   }
   .landing-site :focus-visible {
     outline-color: var(--site-primary);
