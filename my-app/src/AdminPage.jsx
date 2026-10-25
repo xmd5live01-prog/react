@@ -431,11 +431,14 @@ export default function AdminPage({ onPreview, onPublicSite }) {
       setSession(nextSession);
       if (nextSession || event === "SIGNED_OUT") setError("");
       if (event === "SIGNED_OUT") {
+        setNotice("");
         setIsCmsUser(false);
         setIsAdmin(false);
         setAccessPermissions([]);
         setAdminCheckedUserId(null);
         setManagedUsers([]);
+        setPasswordResetUserId("");
+        setPasswordResetValue("");
         setContentLoaded(false);
       }
       if (event === "PASSWORD_RECOVERY") setPasswordRecovery(true);
