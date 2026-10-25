@@ -2,3 +2,6 @@ project_id = "hyxotymypbmkyzghwspj"
 
 [functions.get-water-bill]
 verify_jwt = true
+
+[functions.manage-cms-users]
+verify_jwt = true

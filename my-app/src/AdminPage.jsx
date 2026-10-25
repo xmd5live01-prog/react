@@ -19,6 +19,16 @@ const PANELS = [
   ["steps", "How it works"],
   ["site", "Site settings"],
   ["revisions", "Revisions"],
+  ["users", "User management"],
+];
+
+const CMS_PERMISSIONS = [
+  ["edit_sections", "Edit page sections", "Hero slides, announcements, services, payment methods, and steps"],
+  ["edit_layout", "Edit page layout", "Templates, section order, visibility, and custom sections"],
+  ["edit_site_settings", "Edit site settings", "Site text, branding images, and colors"],
+  ["save_draft", "Save drafts", "Save permitted changes without publishing them"],
+  ["publish_content", "Publish changes", "Make saved website content live"],
+  ["restore_revisions", "Restore revisions", "View revision history and restore a published version"],
 ];
 
 const PASSWORD_RECOVERY_REDIRECT = "https://xmd5live01-prog.github.io/wbs/?cms-recovery=1";
@@ -229,6 +239,7 @@ function Icon({ name }) {
     layout: <><rect x="3" y="4" width="18" height="5" rx="1" /><rect x="3" y="11" width="18" height="4" rx="1" /><rect x="3" y="17" width="18" height="3" rx="1" /></>,
     site: <><circle cx="12" cy="12" r="3" /><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.6a8 8 0 0 1-1.5.9l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.5-.9l-1.7.6-1.4-2.4 1.4-1.1a7 7 0 0 1 0-1.8l-1.4-1.1 1.4-2.4 1.7.6a8 8 0 0 1 1.5-.9l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.5.9l1.7-.6 1.4 2.4-1.4 1.1a7 7 0 0 1 0 1.7Z" /></>,
     revisions: <><path d="M3 12a9 9 0 1 0 2.6-6.4L3 8" /><path d="M3 3v5h5M12 7v5l3 2" /></>,
+    users: <><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="10" cy="7" r="4" /><path d="M20 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></>,
     logout: <><path d="M10 17l5-5-5-5M15 12H3" /><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" /></>,
   };
   return (
@@ -367,6 +378,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
   const [session, setSession] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [accessPermissions, setAccessPermissions] = useState([]);
   const [adminCheckedUserId, setAdminCheckedUserId] = useState(null);
   const [busy, setBusy] = useState(false);
   const [passwordRecovery, setPasswordRecovery] = useState(() => new URLSearchParams(window.location.search).has("cms-recovery"));
@@ -378,6 +390,12 @@ export default function AdminPage({ onPreview, onPublicSite }) {
   const [panel, setPanel] = useState("overview");
   const [draft, setDraft] = useState(() => clone(DEFAULT_CMS_CONTENT));
   const [revisions, setRevisions] = useState([]);
+  const [managedUsers, setManagedUsers] = useState([]);
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("");
+  const [newUserRole, setNewUserRole] = useState("editor");
+  const [newUserPermissions, setNewUserPermissions] = useState(["edit_sections", "save_draft"]);
+  const [addingUser, setAddingUser] = useState(false);
   const [published, setPublished] = useState(null);
   const [hasDraft, setHasDraft] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -422,21 +440,27 @@ export default function AdminPage({ onPreview, onPublicSite }) {
     async function loadCms() {
       setLoadingContent(true);
       setContentLoaded(false);
-      const { data: adminResult, error: adminError } = await supabase.rpc("cms_is_admin");
-      if (adminError) throw adminError;
+      const { data: accessResult, error: accessError } = await supabase.rpc("cms_get_access");
+      if (accessError) throw accessError;
       if (!mounted) return;
       setAdminCheckedUserId(userId);
-      if (!adminResult) {
+      if (!accessResult) {
         setIsAdmin(false);
+        setAccessPermissions([]);
         setLoadingContent(false);
         return;
       }
-      setIsAdmin(true);
+      const administrator = accessResult.role === "admin";
+      const permissions = Array.isArray(accessResult.permissions) ? accessResult.permissions : [];
+      setIsAdmin(administrator);
+      setAccessPermissions(permissions);
 
       const [{ data: draftRow, error: draftError }, { data: publicRow, error: publicError }, { data: revisionRows, error: revisionError }] = await Promise.all([
         supabase.from("cms_content_drafts").select("content,updated_at").eq("singleton_id", true).maybeSingle(),
         supabase.from("cms_public_content").select("version,published_at").eq("singleton_id", true).maybeSingle(),
-        supabase.from("cms_content_revisions").select("id,version,published_at").order("version", { ascending: false }).limit(20),
+        administrator || permissions.includes("restore_revisions")
+          ? supabase.from("cms_content_revisions").select("id,version,published_at").order("version", { ascending: false }).limit(20)
+          : Promise.resolve({ data: [], error: null }),
       ]);
       if (draftError) throw draftError;
       if (publicError) throw publicError;
@@ -462,6 +486,19 @@ export default function AdminPage({ onPreview, onPublicSite }) {
 
     return () => { mounted = false; };
   }, [userId, contentRetry]);
+
+  useEffect(() => {
+    if (!isAdmin) return undefined;
+
+    let mounted = true;
+    supabase.from("cms_users").select("email,role,permissions,created_at").order("created_at", { ascending: false })
+      .then(({ data, error: usersError }) => {
+        if (!mounted) return;
+        if (usersError) setError(usersError.message);
+        else setManagedUsers(data ?? []);
+      });
+    return () => { mounted = false; };
+  }, [isAdmin, userId]);
 
   const counts = useMemo(() => ({
     hero: draft.heroSlides.filter((item) => item.active).length,
@@ -729,12 +766,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
     setBusy(true);
     setError("");
     setNotice("");
-    const { error: saveError } = await supabase.from("cms_content_drafts").upsert({
-      singleton_id: true,
-      content: draft,
-      updated_by: session.user.id,
-      updated_at: new Date().toISOString(),
-    });
+    const { error: saveError } = await supabase.rpc("cms_save_draft", { p_content: draft });
     if (saveError) {
       setError(saveError.message);
     } else {
@@ -761,12 +793,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
     setBusy(true);
     setError("");
     setNotice("");
-    const { error: saveError } = await supabase.from("cms_content_drafts").upsert({
-      singleton_id: true,
-      content: draft,
-      updated_by: session.user.id,
-      updated_at: new Date().toISOString(),
-    });
+    const { error: saveError } = await supabase.rpc("cms_save_draft", { p_content: draft });
     if (saveError) {
       setError(saveError.message);
       setBusy(false);
@@ -819,6 +846,41 @@ export default function AdminPage({ onPreview, onPublicSite }) {
     setBusy(false);
   }
 
+  async function addManagedUser(event) {
+    event.preventDefault();
+    setAddingUser(true);
+    setError("");
+    setNotice("");
+
+    const { error: createError } = await supabase.functions.invoke("manage-cms-users", {
+      body: {
+        email: newUserEmail,
+        password: newUserPassword,
+        role: newUserRole,
+        permissions: newUserRole === "admin" ? [] : newUserPermissions,
+      },
+    });
+    if (createError) {
+      setError(createError.message);
+      setAddingUser(false);
+      return;
+    }
+
+    const { data, error: usersError } = await supabase
+      .from("cms_users")
+      .select("email,role,permissions,created_at")
+      .order("created_at", { ascending: false });
+    if (usersError) {
+      setError(`Account created, but the user list could not be refreshed: ${usersError.message}`);
+    } else {
+      setManagedUsers(data ?? []);
+      setNewUserEmail("");
+      setNewUserPassword("");
+      setNotice("User account created and role assigned. Share the temporary password securely and ask the user to change it after signing in.");
+    }
+    setAddingUser(false);
+  }
+
   if (!isSupabaseConfigured) {
     return <main className="cms-login-shell"><div className="cms-login-card"><p className="cms-eyebrow">CMS SETUP REQUIRED</p><h1>Connect Supabase</h1><p className="cms-login-description">Set the VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY build variables, then rebuild the site.</p><button className="cms-secondary-button" onClick={onPublicSite} type="button">Return to website</button></div></main>;
   }
@@ -856,6 +918,17 @@ export default function AdminPage({ onPreview, onPublicSite }) {
   }
 
   const selectedPanel = PANELS.find(([id]) => id === panel)?.[1] ?? "Dashboard";
+  const hasPermission = (permission) => isAdmin || accessPermissions.includes(permission);
+  const canOpenPanel = (id) => {
+    if (id === "overview") return true;
+    if (id === "users") return isAdmin;
+    if (["heroSlides", "announcements", "services", "paymentMethods", "steps"].includes(id)) return hasPermission("edit_sections");
+    if (id === "layout") return hasPermission("edit_layout");
+    if (id === "site") return hasPermission("edit_site_settings") || hasPermission("edit_layout");
+    if (id === "revisions") return hasPermission("restore_revisions");
+    return false;
+  };
+  const visiblePanels = PANELS.filter(([id]) => canOpenPanel(id));
 
   return (
     <div className="cms-admin">
@@ -866,7 +939,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
         </button>
         <div className="cms-side-label">WORKSPACE</div>
         <nav aria-label="CMS sections" className="cms-nav">
-          {PANELS.map(([id, label]) => (
+          {visiblePanels.map(([id, label]) => (
             <button aria-current={panel === id ? "page" : undefined} className={panel === id ? "is-selected" : ""} key={id} onClick={() => { setPanel(id); setError(""); setNotice(""); }} type="button">
               <Icon name={id} /><span>{label}</span>
               {id === "revisions" && revisions.length > 0 && <small>{revisions.length}</small>}
@@ -874,7 +947,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
           ))}
         </nav>
         <div className="cms-sidebar-bottom">
-          <div className="cms-user-badge"><span>{session.user.email?.slice(0, 1).toUpperCase()}</span><div><strong>Administrator</strong><small>{session.user.email}</small></div></div>
+          <div className="cms-user-badge"><span>{session.user.email?.slice(0, 1).toUpperCase()}</span><div><strong>{isAdmin ? "Administrator" : "Editor"}</strong><small>{session.user.email}</small></div></div>
           <button className="cms-logout-button" disabled={busy} onClick={logout} type="button"><Icon name="logout" />Sign out</button>
         </div>
       </aside>
@@ -912,7 +985,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
                       ["Services", counts.services, draft.services.length, "services"],
                       ["Payment options", counts.payments, draft.paymentMethods.length, "paymentMethods"],
                     ].map(([label, active, total, section]) => (
-                      <button className="cms-stat-card" key={section} onClick={() => setPanel(section)} type="button">
+                      <button className="cms-stat-card" disabled={!canOpenPanel(section)} key={section} onClick={() => setPanel(section)} type="button">
                         <span>{label}</span><strong>{active}</strong><small>active of {total}</small>
                       </button>
                     ))}
@@ -922,11 +995,11 @@ export default function AdminPage({ onPreview, onPublicSite }) {
                       <div className="cms-card-heading"><div><h3>Publishing</h3><p>{dirty ? "You have unsaved changes." : hasDraft ? "Your latest draft is saved." : "Start from the current website content."}</p></div><span className={`cms-status-pill ${dirty ? "is-draft" : "is-active"}`}>{dirty ? "Unsaved" : hasDraft ? "Draft saved" : "Ready"}</span></div>
                       <div className="cms-publish-detail"><span>Last published</span><strong>{published ? new Date(published.published_at).toLocaleString() : "Not published yet"}</strong></div>
                       <div className="cms-publish-detail"><span>Latest version</span><strong>{published ? `Version ${published.version}` : "—"}</strong></div>
-                      <div className="cms-action-row"><button className="cms-secondary-button" disabled={busy} onClick={() => onPreview(draft)} type="button">Preview draft</button><button className="cms-primary-button" disabled={busy || !dirty} onClick={saveDraft} type="button">{busy ? "Saving..." : "Save draft"}</button><button className="cms-publish-button" disabled={busy} onClick={publishDraft} type="button">{busy ? "Publishing..." : "Publish changes"}</button></div>
+                      <div className="cms-action-row"><button className="cms-secondary-button" disabled={busy} onClick={() => onPreview(draft)} type="button">Preview draft</button>{hasPermission("save_draft") && <button className="cms-primary-button" disabled={busy || !dirty} onClick={saveDraft} type="button">{busy ? "Saving..." : "Save draft"}</button>}{hasPermission("publish_content") && <button className="cms-publish-button" disabled={busy} onClick={publishDraft} type="button">{busy ? "Publishing..." : "Publish changes"}</button>}</div>
                     </section>
                     <section className="cms-info-card">
                       <div className="cms-card-heading"><div><h3>Quick start</h3><p>Common content tasks</p></div></div>
-                      {PANELS.slice(1, 7).map(([id, label]) => (
+                      {visiblePanels.filter(([id]) => ["heroSlides", "layout", "announcements", "services", "paymentMethods", "steps"].includes(id)).map(([id, label]) => (
                         <button className="cms-quick-link" key={id} onClick={() => setPanel(id)} type="button"><Icon name={id} />{label}<span>›</span></button>
                       ))}
                     </section>
@@ -942,6 +1015,67 @@ export default function AdminPage({ onPreview, onPublicSite }) {
                   onUpdate={(id, field, value) => updateItem(panel, id, field, value)}
                   section={panel}
                 />
+              )}
+
+              {panel === "users" && isAdmin && (
+                <section className="cms-panel-content">
+                  <div className="cms-section-toolbar">
+                    <div><h2>User management</h2><p>Create CMS accounts and decide what Editors can manage.</p></div>
+                  </div>
+                  <form className="cms-info-card cms-user-form" onSubmit={addManagedUser}>
+                    <div className="cms-branding-heading"><div><h3>Add a user</h3><p>Accounts use the email and temporary password you provide. Share the password privately.</p></div></div>
+                    <label className="cms-field">
+                      <span>Email address</span>
+                      <input autoComplete="off" disabled={addingUser} onChange={(event) => setNewUserEmail(event.target.value)} required type="email" value={newUserEmail} />
+                    </label>
+                    <label className="cms-field">
+                      <span>Temporary password (at least 12 characters)</span>
+                      <input autoComplete="new-password" disabled={addingUser} minLength={12} onChange={(event) => setNewUserPassword(event.target.value)} required type="password" value={newUserPassword} />
+                    </label>
+                    <label className="cms-field">
+                      <span>Role</span>
+                      <select disabled={addingUser} onChange={(event) => setNewUserRole(event.target.value)} value={newUserRole}>
+                        <option value="editor">Editor</option>
+                        <option value="admin">Administrator</option>
+                      </select>
+                    </label>
+                    {newUserRole === "editor" && (
+                      <fieldset className="cms-permission-list">
+                        <legend>Editor permissions</legend>
+                        <p>Choose only the tasks this Editor needs. Permissions are checked again by Supabase when changes are saved, published, or restored.</p>
+                        {CMS_PERMISSIONS.map(([permission, label, description]) => (
+                          <label className="cms-permission-option" key={permission}>
+                            <input
+                              checked={newUserPermissions.includes(permission)}
+                              disabled={addingUser}
+                              onChange={(event) => setNewUserPermissions((current) => event.target.checked
+                                ? [...current, permission]
+                                : current.filter((item) => item !== permission))}
+                              type="checkbox"
+                            />
+                            <span><strong>{label}</strong><small>{description}</small></span>
+                          </label>
+                        ))}
+                      </fieldset>
+                    )}
+                    {newUserRole === "admin" && <p className="cms-user-admin-note">Administrators can manage users and have all CMS permissions.</p>}
+                    <button className="cms-primary-button" disabled={addingUser} type="submit">{addingUser ? "Adding user..." : "Add user"}</button>
+                  </form>
+                  <section className="cms-info-card cms-managed-users">
+                    <div className="cms-branding-heading"><div><h3>CMS users</h3><p>{managedUsers.length} account{managedUsers.length === 1 ? "" : "s"} with CMS access</p></div></div>
+                    {managedUsers.length ? (
+                      <div className="cms-managed-user-list">
+                        {managedUsers.map((user) => (
+                          <article className="cms-managed-user" key={user.email}>
+                            <div><strong>{user.email}</strong><small>Added {new Date(user.created_at).toLocaleDateString()}</small></div>
+                            <span className={`cms-status-pill ${user.role === "admin" ? "is-active" : "is-draft"}`}>{user.role === "admin" ? "Administrator" : "Editor"}</span>
+                            <p>{user.role === "admin" ? "All CMS permissions" : CMS_PERMISSIONS.filter(([permission]) => user.permissions?.includes(permission)).map(([, label]) => label).join(", ") || "No permissions assigned"}</p>
+                          </article>
+                        ))}
+                      </div>
+                    ) : <div className="cms-empty-state">No CMS user accounts were found.</div>}
+                  </section>
+                </section>
               )}
 
               {panel === "layout" && (
@@ -993,9 +1127,10 @@ export default function AdminPage({ onPreview, onPublicSite }) {
                             {section.imageUrl ? <img alt={section.imageAlt || `${section.title} preview`} src={section.imageUrl} /> : <span>Optional section image</span>}
                           </div>
                           <div className="cms-custom-media-controls">
-                            <label className="cms-field"><span>Upload image (JPG, PNG, WebP; max 5 MB)</span><input accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; uploadCustomSectionImage(section.id, file); }} type="file" /></label>
+                            <label className="cms-field"><span>Upload image (JPG, PNG, WebP; max 5 MB)</span><input accept="image/jpeg,image/png,image/webp" disabled={busy || !hasPermission("edit_site_settings")} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; uploadCustomSectionImage(section.id, file); }} type="file" /></label>
                             <label className="cms-field"><span>Image description (accessibility)</span><input disabled={busy} onChange={(event) => updateCustomSection(section.id, "imageAlt", event.target.value)} value={section.imageAlt} /></label>
                           </div>
+                          {!hasPermission("edit_site_settings") && <p className="cms-user-admin-note">Image uploads require the Editor permission “Edit site settings”.</p>}
                         </div>
                       </article>
                     ))}
@@ -1005,15 +1140,16 @@ export default function AdminPage({ onPreview, onPublicSite }) {
 
               {panel === "site" && (
                 <section className="cms-panel-content">
-                  <div className="cms-section-toolbar"><div><h2>Site settings</h2><p>Update shared labels, branding, and colors displayed across the public site.</p></div><button className="cms-secondary-button" disabled={busy} onClick={resetBranding} type="button">Reset branding</button></div>
+                  <div className="cms-section-toolbar"><div><h2>Site settings</h2><p>Update shared labels, branding, and colors displayed across the public site.</p></div>{hasPermission("edit_site_settings") && <button className="cms-secondary-button" disabled={busy} onClick={resetBranding} type="button">Reset branding</button>}</div>
                   <div className="cms-info-card cms-branding-card">
                     <div className="cms-branding-heading"><div><h3>Landing page template</h3><p>Choose a layout variation. All templates use the same editable content, images, and color palette.</p></div></div>
+                    {!hasPermission("edit_layout") && <p className="cms-user-admin-note">Changing the template requires the Editor permission “Edit page layout”.</p>}
                     <div className="cms-template-grid">
                       {LANDING_TEMPLATES.map(([id, label, description]) => (
                         <button
                           aria-pressed={draft.landingTemplate === id}
                           className={`cms-template-card${draft.landingTemplate === id ? " is-selected" : ""}`}
-                          disabled={busy}
+                          disabled={busy || !hasPermission("edit_layout")}
                           key={id}
                           onClick={() => chooseTemplate(id)}
                           type="button"
@@ -1042,7 +1178,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
                             <span>{label}</span>
                             <input
                               accept="image/jpeg,image/png,image/webp"
-                              disabled={busy}
+                              disabled={busy || !hasPermission("edit_site_settings")}
                               onChange={(event) => {
                                 const file = event.target.files?.[0];
                                 event.target.value = "";
@@ -1052,7 +1188,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
                             />
                           </label>
                           <p>{help}</p>
-                          {draft[field] && <button className="cms-reset-image" disabled={busy} onClick={() => updateSite(field, "")} type="button">Remove from draft</button>}
+                          {draft[field] &&                           <button className="cms-reset-image" disabled={busy || !hasPermission("edit_site_settings")} onClick={() => updateSite(field, "")} type="button">Remove from draft</button>}
                         </div>
                       ))}
                     </div>
@@ -1064,7 +1200,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
                         <label className="cms-color-field" key={field}>
                           <span>{label}</span>
                           <div>
-                            <input aria-label={`${label} picker`} disabled={busy} onChange={(event) => updateSite(field, event.target.value)} type="color" value={draft[field]} />
+                            <input aria-label={`${label} picker`} disabled={busy || !hasPermission("edit_site_settings")} onChange={(event) => updateSite(field, event.target.value)} type="color" value={draft[field]} />
                             <code>{draft[field]}</code>
                           </div>
                         </label>
@@ -1086,9 +1222,9 @@ export default function AdminPage({ onPreview, onPublicSite }) {
                       <label className="cms-field" key={field}>
                         <span>{label}</span>
                         {field.endsWith("Description") || field.endsWith("Subheading") ? (
-                          <textarea onChange={(event) => updateSite(field, event.target.value)} rows={2} value={draft[field]} />
+                          <textarea disabled={busy || !hasPermission("edit_site_settings")} onChange={(event) => updateSite(field, event.target.value)} rows={2} value={draft[field]} />
                         ) : (
-                          <input onChange={(event) => updateSite(field, event.target.value)} value={draft[field]} />
+                          <input disabled={busy || !hasPermission("edit_site_settings")} onChange={(event) => updateSite(field, event.target.value)} value={draft[field]} />
                         )}
                       </label>
                     ))}
@@ -1112,13 +1248,13 @@ export default function AdminPage({ onPreview, onPublicSite }) {
                 </section>
               )}
 
-              {panel !== "overview" && (
+              {panel !== "overview" && panel !== "users" && (hasPermission("save_draft") || hasPermission("publish_content")) && (
                 <div className="cms-sticky-publish">
                   <div><strong>{dirty ? "Unsaved changes" : "Draft status"}</strong><span>{published ? `Live version ${published.version}` : "No live version yet"}</span></div>
                   <div className="cms-action-row">
                     <button className="cms-secondary-button" disabled={busy} onClick={() => onPreview(draft)} type="button">Preview</button>
-                    <button className="cms-secondary-button" disabled={busy || !dirty} onClick={saveDraft} type="button">{busy ? "Saving..." : "Save draft"}</button>
-                    <button className="cms-publish-button" disabled={busy} onClick={publishDraft} type="button">{busy ? "Publishing..." : "Publish"}</button>
+                    {hasPermission("save_draft") && <button className="cms-secondary-button" disabled={busy || !dirty} onClick={saveDraft} type="button">{busy ? "Saving..." : "Save draft"}</button>}
+                    {hasPermission("publish_content") && <button className="cms-publish-button" disabled={busy} onClick={publishDraft} type="button">{busy ? "Publishing..." : "Publish"}</button>}
                   </div>
                 </div>
               )}
