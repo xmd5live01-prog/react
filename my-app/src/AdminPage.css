@@ -1620,6 +1620,7 @@
 
   .cms-admin {
     display: block;
+    font-size: 16px;
   }
 
   .cms-sidebar {
@@ -1628,19 +1629,25 @@
     top: 0;
     width: 100%;
     height: auto;
-    padding: 8px 12px;
+    padding: 10px 12px 8px;
     border-right: 0;
     border-bottom: 1px solid var(--cms-line);
   }
 
   .cms-brand {
-    padding: 2px 2px 8px;
+    gap: 10px;
+    padding: 3px 4px 10px;
+    font-size: 16px;
+  }
+
+  .cms-brand > span:last-child small {
+    font-size: 12px;
   }
 
   .cms-brand-mark {
-    width: 32px;
-    height: 32px;
-    flex-basis: 32px;
+    width: 38px;
+    height: 38px;
+    flex-basis: 38px;
   }
 
   .cms-side-label,
@@ -1650,40 +1657,57 @@
 
   .cms-nav {
     display: flex;
-    gap: 5px;
+    gap: 7px;
     overflow-x: auto;
-    padding-bottom: 2px;
+    padding: 2px 1px 5px;
+    scrollbar-width: none;
+    touch-action: pan-x;
+  }
+
+  .cms-nav::-webkit-scrollbar {
+    display: none;
   }
 
   .cms-nav button {
-    min-height: 35px;
+    min-height: 46px;
     flex: 0 0 auto;
-    gap: 6px;
-    padding: 0 9px;
-    font-size: 10px;
+    gap: 8px;
+    padding: 0 13px;
+    border: 1px solid #e4e7ec;
+    border-radius: 11px;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 650;
   }
 
   .cms-nav button .cms-icon {
-    width: 15px;
-    height: 15px;
+    width: 18px;
+    height: 18px;
   }
 
   .cms-nav button small {
-    display: none;
+    display: inline-grid;
+    min-width: 20px;
+    min-height: 20px;
+    place-items: center;
+    border-radius: 99px;
+    background: #eef4ff;
+    font-size: 11px;
   }
 
   .cms-topbar {
     position: static;
-    min-height: 63px;
-    padding: 9px 15px;
+    min-height: 74px;
+    padding: 11px 16px;
+    gap: 10px;
   }
 
   .cms-topbar h1 {
-    font-size: 17px;
+    font-size: 20px;
   }
 
   .cms-breadcrumb {
-    font-size: 9px;
+    font-size: 11px;
   }
 
   .cms-topbar-actions {
@@ -1695,60 +1719,118 @@
   }
 
   .cms-topbar-actions .cms-secondary-button {
-    min-height: 32px;
-    padding: 0 8px;
-    font-size: 9px;
+    min-height: 44px;
+    padding: 0 12px;
+    font-size: 12px;
   }
 
   .cms-workspace {
-    padding: 17px 12px 132px;
+    padding: 20px 14px 150px;
+  }
+
+  .cms-panel-content {
+    gap: 18px;
   }
 
   .cms-welcome {
-    min-height: 148px;
-    padding: 19px;
+    min-height: 170px;
+    padding: 20px;
+    border-radius: 15px;
+  }
+
+  .cms-welcome h2 {
+    font-size: 23px;
+    line-height: 1.25;
+  }
+
+  .cms-welcome p:last-child {
+    font-size: 15px;
+    line-height: 1.55;
   }
 
   .cms-welcome-mark {
-    width: 57px;
-    height: 57px;
-    flex-basis: 57px;
-    border-radius: 17px;
-    font-size: 16px;
+    width: 64px;
+    height: 64px;
+    flex-basis: 64px;
+    border-radius: 18px;
+    font-size: 18px;
   }
 
   .cms-stat-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 9px;
+    gap: 11px;
   }
 
   .cms-stat-card {
-    min-height: 97px;
-    padding: 13px;
+    min-height: 112px;
+    gap: 7px;
+    padding: 15px;
+    border-radius: 13px;
+  }
+
+  .cms-stat-card span,
+  .cms-stat-card small {
+    font-size: 13px;
+  }
+
+  .cms-stat-card strong {
+    font-size: 31px;
   }
 
   .cms-info-card,
   .cms-settings-card {
-    padding: 15px;
+    padding: 18px;
+    border-radius: 14px;
+  }
+
+  .cms-card-heading h3,
+  .cms-info-card h3 {
+    font-size: 17px;
+  }
+
+  .cms-card-heading p,
+  .cms-settings-help p,
+  .cms-branding-heading p,
+  .cms-media-field > p {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .cms-eyebrow {
+    font-size: 11px;
   }
 
   .cms-section-toolbar {
     align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .cms-section-toolbar h2 {
+    font-size: 22px;
+  }
+
+  .cms-section-toolbar p {
+    font-size: 13px;
+    line-height: 1.5;
   }
 
   .cms-section-toolbar .cms-primary-button {
-    min-height: 34px;
+    min-height: 48px;
     flex: 0 0 auto;
-    padding: 0 9px;
-    font-size: 10px;
+    padding: 0 15px;
+    font-size: 13px;
   }
 
   .cms-entry-card {
-    padding: 12px;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 13px;
   }
 
   .cms-entry-main {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
 
   .cms-field,
@@ -1758,11 +1840,212 @@
     grid-column: 1;
   }
 
+  .cms-field {
+    gap: 7px;
+  }
+
+  .cms-field > span {
+    font-size: 13px;
+  }
+
+  .cms-field input,
+  .cms-field textarea,
+  .cms-field select,
+  .cms-search-wrap input {
+    min-height: 48px;
+    padding: 11px 13px;
+    border-radius: 9px;
+    font-size: 16px;
+  }
+
+  .cms-field textarea {
+    min-height: 100px;
+  }
+
+  .cms-primary-button,
+  .cms-secondary-button,
+  .cms-publish-button {
+    min-height: 46px;
+    padding-inline: 14px;
+    border-radius: 9px;
+    font-size: 13px;
+  }
+
+  .cms-entry-actions {
+    flex-wrap: wrap;
+    gap: 9px;
+    padding-top: 14px;
+  }
+
+  .cms-entry-actions > button:not(.cms-toggle-button) {
+    width: 42px;
+    height: 42px;
+    border-radius: 9px;
+    font-size: 19px;
+  }
+
+  .cms-toggle-button {
+    min-height: 42px;
+    padding-inline: 13px;
+    font-size: 12px;
+  }
+
+  .cms-search-wrap input {
+    width: 100%;
+  }
+
+  .cms-search-wrap span {
+    font-size: 12px;
+  }
+
+  .cms-template-card {
+    gap: 10px;
+    padding: 13px;
+    border-radius: 12px;
+  }
+
+  .cms-template-preview {
+    min-height: 104px;
+  }
+
+  .cms-template-title {
+    font-size: 14px;
+  }
+
+  .cms-template-title small,
+  .cms-template-description {
+    font-size: 12px;
+  }
+
+  .cms-layout-list-card,
+  .cms-custom-section-card,
+  .cms-branding-card {
+    padding: 17px;
+  }
+
+  .cms-layout-row {
+    min-height: 60px;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 10px;
+  }
+
+  .cms-layout-position {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+    font-size: 13px;
+  }
+
+  .cms-layout-name strong {
+    font-size: 13px;
+  }
+
+  .cms-layout-name small {
+    font-size: 11px;
+  }
+
+  .cms-layout-toggle {
+    gap: 8px;
+    font-size: 12px;
+  }
+
+  .cms-layout-toggle input {
+    width: 20px;
+    height: 20px;
+  }
+
+  .cms-layout-actions button {
+    width: 42px;
+    height: 42px;
+    border-radius: 9px;
+    font-size: 19px;
+  }
+
+  .cms-custom-section-header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .cms-custom-section-header h3 {
+    font-size: 17px;
+  }
+
+  .cms-custom-section-header p {
+    font-size: 12px;
+  }
+
+  .cms-reset-image {
+    min-height: 42px;
+    font-size: 12px;
+  }
+
+  .cms-media-preview {
+    min-height: 180px;
+  }
+
+  .cms-rich-toolbar {
+    gap: 6px;
+    padding: 9px;
+  }
+
+  .cms-rich-toolbar > button,
+  .cms-rich-toolbar > select,
+  .cms-rich-color {
+    min-width: 40px;
+    min-height: 40px;
+    font-size: 12px;
+  }
+
+  .cms-rich-color {
+    width: 40px;
+  }
+
+  .cms-rich-content {
+    min-height: 240px;
+    padding: 15px;
+    font-size: 16px;
+  }
+
+  .cms-rich-help {
+    padding: 0 14px 12px;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  .cms-color-field {
+    gap: 9px;
+    font-size: 13px;
+  }
+
+  .cms-color-field input[type="color"] {
+    width: 50px;
+    height: 46px;
+  }
+
+  .cms-color-field code {
+    font-size: 13px;
+  }
+
+  .cms-alert {
+    gap: 14px;
+    padding: 14px;
+    border-radius: 11px;
+    font-size: 13px;
+  }
+
+  .cms-empty-state,
+  .cms-loading {
+    padding: 20px;
+    font-size: 14px;
+    text-align: center;
+  }
+
   .cms-sticky-publish {
     right: 0;
     left: 0;
-    min-height: 74px;
-    padding: 9px 11px;
+    min-height: 82px;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
   }
 
   .cms-sticky-publish > div:first-child {
@@ -1771,26 +2054,106 @@
 
   .cms-sticky-publish .cms-action-row {
     width: 100%;
-    justify-content: flex-end;
-    gap: 6px;
+    justify-content: stretch;
+    gap: 8px;
     margin: 0;
   }
 
   .cms-sticky-publish .cms-action-row button {
-    min-height: 36px;
-    padding: 0 9px;
-    font-size: 10px;
+    min-width: 0;
+    min-height: 48px;
+    flex: 1 1 0;
+    padding: 0 8px;
+    font-size: 12px;
   }
 
   .cms-revision-card {
     flex-wrap: wrap;
+    gap: 12px;
+    padding: 15px;
   }
 
   .cms-revision-card > :last-child {
     margin-left: auto;
   }
 
+  .cms-revision-info strong {
+    font-size: 13px;
+  }
+
+  .cms-revision-info span {
+    font-size: 12px;
+  }
+
+  .cms-status-pill {
+    min-height: 28px;
+    padding-inline: 10px;
+    font-size: 11px;
+  }
+
   .cms-login-card {
-    padding: 25px;
+    width: min(460px, 100%);
+    padding: 28px 24px;
+    border-radius: 20px;
+  }
+
+  .cms-login-card h1 {
+    font-size: 28px;
+  }
+
+  .cms-login-description {
+    margin-bottom: 25px;
+    font-size: 15px;
+  }
+
+  .cms-login-card label {
+    font-size: 13px;
+  }
+
+  .cms-login-card input {
+    min-height: 50px;
+    font-size: 16px;
+  }
+
+  .cms-google-button,
+  .cms-login-button {
+    min-height: 50px;
+    font-size: 14px;
+  }
+
+  .cms-reset-link {
+    min-height: 44px;
+    font-size: 13px;
+  }
+
+  .cms-login-footnote {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 380px) {
+  .cms-topbar {
+    padding-inline: 12px;
+  }
+
+  .cms-topbar h1 {
+    font-size: 18px;
+  }
+
+  .cms-workspace {
+    padding-inline: 10px;
+  }
+
+  .cms-sticky-publish {
+    padding-inline: 8px;
+  }
+
+  .cms-sticky-publish .cms-action-row {
+    gap: 5px;
+  }
+
+  .cms-sticky-publish .cms-action-row button {
+    padding-inline: 5px;
+    font-size: 11px;
   }
 }
