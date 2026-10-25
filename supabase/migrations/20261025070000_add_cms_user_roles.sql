@@ -331,7 +331,6 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_old_content jsonb;
   v_content jsonb;
 begin
   if not public.cms_has_permission('restore_revisions') then
@@ -345,22 +344,6 @@ begin
 
   if v_content is null then
     raise exception 'Publication revision not found';
-  end if;
-
-  select drafts.content
-    into v_old_content
-    from public.cms_content_drafts as drafts
-    where drafts.singleton_id = true;
-
-  if v_old_content is not null then
-    perform public.cms_check_content_permissions(v_old_content, v_content);
-  elsif not public.cms_is_admin()
-     and not (
-       public.cms_has_permission('edit_sections')
-       and public.cms_has_permission('edit_layout')
-       and public.cms_has_permission('edit_site_settings')
-     ) then
-    raise exception 'Initial revision restore requires all content editing permissions' using errcode = '42501';
   end if;
 
   insert into public.cms_content_drafts (singleton_id, content, updated_at, updated_by)

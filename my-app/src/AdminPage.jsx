@@ -852,33 +852,37 @@ export default function AdminPage({ onPreview, onPublicSite }) {
     setError("");
     setNotice("");
 
-    const { error: createError } = await supabase.functions.invoke("manage-cms-users", {
-      body: {
-        email: newUserEmail,
-        password: newUserPassword,
-        role: newUserRole,
-        permissions: newUserRole === "admin" ? [] : newUserPermissions,
-      },
-    });
-    if (createError) {
-      setError(createError.message);
-      setAddingUser(false);
-      return;
-    }
+    try {
+      const { error: createError } = await supabase.functions.invoke("manage-cms-users", {
+        body: {
+          email: newUserEmail,
+          password: newUserPassword,
+          role: newUserRole,
+          permissions: newUserRole === "admin" ? [] : newUserPermissions,
+        },
+      });
+      if (createError) {
+        setError(createError.message);
+        return;
+      }
 
-    const { data, error: usersError } = await supabase
-      .from("cms_users")
-      .select("email,role,permissions,created_at")
-      .order("created_at", { ascending: false });
-    if (usersError) {
-      setError(`Account created, but the user list could not be refreshed: ${usersError.message}`);
-    } else {
-      setManagedUsers(data ?? []);
-      setNewUserEmail("");
-      setNewUserPassword("");
-      setNotice("User account created and role assigned. Share the temporary password securely and ask the user to change it after signing in.");
+      const { data, error: usersError } = await supabase
+        .from("cms_users")
+        .select("email,role,permissions,created_at")
+        .order("created_at", { ascending: false });
+      if (usersError) {
+        setError(`Account created, but the user list could not be refreshed: ${usersError.message}`);
+      } else {
+        setManagedUsers(data ?? []);
+        setNewUserEmail("");
+        setNewUserPassword("");
+        setNotice("User account created and role assigned. Share the temporary password securely and ask the user to change it after signing in.");
+      }
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : "Unable to create the CMS user.");
+    } finally {
+      setAddingUser(false);
     }
-    setAddingUser(false);
   }
 
   if (!isSupabaseConfigured) {

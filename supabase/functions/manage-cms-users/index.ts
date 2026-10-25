@@ -67,9 +67,24 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Sign in as an Administrator to continue." }, 401, origin);
   }
 
+  const contentLength = Number(req.headers.get("content-length") ?? 0);
+  if (contentLength > 8192) {
+    return jsonResponse({ error: "Request body is too large." }, 413, origin);
+  }
+
+  let bodyText: string;
+  try {
+    bodyText = await req.text();
+  } catch {
+    return jsonResponse({ error: "Unable to read request body." }, 400, origin);
+  }
+  if (new TextEncoder().encode(bodyText).length > 8192) {
+    return jsonResponse({ error: "Request body is too large." }, 413, origin);
+  }
+
   let input: unknown;
   try {
-    input = await req.json();
+    input = JSON.parse(bodyText);
   } catch {
     return jsonResponse({ error: "Invalid request body." }, 400, origin);
   }
