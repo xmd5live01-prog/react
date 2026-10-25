@@ -405,6 +405,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
   const [hasDraft, setHasDraft] = useState(false);
   const [dirty, setDirty] = useState(false);
   const userId = session?.user?.id;
+  const authGenerationRef = useRef(0);
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -431,6 +432,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
       setSession(nextSession);
       if (nextSession || event === "SIGNED_OUT") setError("");
       if (event === "SIGNED_OUT") {
+        authGenerationRef.current += 1;
         setNotice("");
         setIsCmsUser(false);
         setIsAdmin(false);
@@ -453,12 +455,13 @@ export default function AdminPage({ onPreview, onPublicSite }) {
     if (!userId) return undefined;
 
     let mounted = true;
+    const authGeneration = authGenerationRef.current;
     async function loadCms() {
       setLoadingContent(true);
       setContentLoaded(false);
       const { data: accessResult, error: accessError } = await supabase.rpc("cms_get_access");
       if (accessError) throw accessError;
-      if (!mounted) return;
+      if (!mounted || authGenerationRef.current !== authGeneration) return;
       setAdminCheckedUserId(userId);
       if (!accessResult) {
         setIsCmsUser(false);
@@ -483,7 +486,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
       if (draftError) throw draftError;
       if (publicError) throw publicError;
       if (revisionError) throw revisionError;
-      if (!mounted) return;
+      if (!mounted || authGenerationRef.current !== authGeneration) return;
       setDraft(normalizeCmsContent(draftRow?.content ?? clone(DEFAULT_CMS_CONTENT)));
       setHasDraft(Boolean(draftRow));
       setPublished(publicRow);
@@ -495,7 +498,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
     }
 
     loadCms().catch((loadError) => {
-      if (!mounted) return;
+      if (!mounted || authGenerationRef.current !== authGeneration) return;
       setIsCmsUser(false);
       setIsAdmin(false);
       setAdminCheckedUserId(userId);
@@ -510,9 +513,10 @@ export default function AdminPage({ onPreview, onPublicSite }) {
     if (!isAdmin || !userId) return undefined;
 
     let mounted = true;
+    const authGeneration = authGenerationRef.current;
     supabase.from("cms_users").select("user_id,email,role,permissions,active,created_at").order("created_at", { ascending: false })
       .then(({ data, error: usersError }) => {
-        if (!mounted) return;
+        if (!mounted || authGenerationRef.current !== authGeneration) return;
         if (usersError) setError(usersError.message);
         else setManagedUsers(data ?? []);
       });
@@ -888,6 +892,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
 
   async function addManagedUser(event) {
     event.preventDefault();
+    const authGeneration = authGenerationRef.current;
     setAddingUser(true);
     setError("");
     setNotice("");
@@ -901,8 +906,11 @@ export default function AdminPage({ onPreview, onPublicSite }) {
           permissions: newUserRole === "admin" ? [] : newUserPermissions,
         },
       });
+      if (authGenerationRef.current !== authGeneration) return;
       if (createError) {
-        setError(await getFunctionErrorMessage(createError));
+        const message = await getFunctionErrorMessage(createError);
+        if (authGenerationRef.current !== authGeneration) return;
+        setError(message);
         return;
       }
 
@@ -910,6 +918,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
         .from("cms_users")
         .select("user_id,email,role,permissions,active,created_at")
         .order("created_at", { ascending: false });
+      if (authGenerationRef.current !== authGeneration) return;
       if (usersError) {
         setError(`Account created, but the user list could not be refreshed: ${usersError.message}`);
       } else {
@@ -919,15 +928,17 @@ export default function AdminPage({ onPreview, onPublicSite }) {
         setNotice("User account created and role assigned. Share the temporary password securely and ask the user to change it after signing in.");
       }
     } catch (createError) {
+      if (authGenerationRef.current !== authGeneration) return;
       setError(createError instanceof Error ? createError.message : "Unable to create the CMS user.");
     } finally {
-      setAddingUser(false);
+      if (authGenerationRef.current === authGeneration) setAddingUser(false);
     }
   }
 
   async function setManagedUserActive(user, active) {
     if (!active && !window.confirm(`Deactivate ${user.email}? They will lose CMS access and be signed out.`)) return;
 
+    const authGeneration = authGenerationRef.current;
     setUpdatingUserId(user.user_id);
     setError("");
     setNotice("");
@@ -935,8 +946,11 @@ export default function AdminPage({ onPreview, onPublicSite }) {
       const { error: updateError } = await supabase.functions.invoke("manage-cms-users", {
         body: { action: "set_active", userId: user.user_id, active },
       });
+      if (authGenerationRef.current !== authGeneration) return;
       if (updateError) {
-        setError(await getFunctionErrorMessage(updateError));
+        const message = await getFunctionErrorMessage(updateError);
+        if (authGenerationRef.current !== authGeneration) return;
+        setError(message);
         return;
       }
 
@@ -944,6 +958,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
         .from("cms_users")
         .select("user_id,email,role,permissions,active,created_at")
         .order("created_at", { ascending: false });
+      if (authGenerationRef.current !== authGeneration) return;
       if (usersError) {
         setError(`User status changed, but the user list could not be refreshed: ${usersError.message}`);
       } else {
@@ -951,13 +966,15 @@ export default function AdminPage({ onPreview, onPublicSite }) {
         setNotice(`${user.email} ${active ? "reactivated" : "deactivated"} successfully.`);
       }
     } catch (updateError) {
+      if (authGenerationRef.current !== authGeneration) return;
       setError(updateError instanceof Error ? updateError.message : "Unable to update this CMS user's status.");
     } finally {
-      setUpdatingUserId("");
+      if (authGenerationRef.current === authGeneration) setUpdatingUserId("");
     }
   }
 
   async function resetManagedUserPassword(user) {
+    const authGeneration = authGenerationRef.current;
     setResettingUserId(user.user_id);
     setError("");
     setNotice("");
@@ -969,8 +986,11 @@ export default function AdminPage({ onPreview, onPublicSite }) {
           password: passwordResetValue,
         },
       });
+      if (authGenerationRef.current !== authGeneration) return;
       if (resetError) {
-        setError(await getFunctionErrorMessage(resetError));
+        const message = await getFunctionErrorMessage(resetError);
+        if (authGenerationRef.current !== authGeneration) return;
+        setError(message);
         return;
       }
 
@@ -978,9 +998,10 @@ export default function AdminPage({ onPreview, onPublicSite }) {
       setPasswordResetValue("");
       setNotice(`Temporary password reset for ${user.email}. Share it securely and ask them to change it after signing in.`);
     } catch (resetError) {
+      if (authGenerationRef.current !== authGeneration) return;
       setError(resetError instanceof Error ? resetError.message : "Unable to reset this CMS user's password.");
     } finally {
-      setResettingUserId("");
+      if (authGenerationRef.current === authGeneration) setResettingUserId("");
     }
   }
 
