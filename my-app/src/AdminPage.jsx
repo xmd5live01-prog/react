@@ -998,7 +998,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
         <div className="cms-login-card">
           <p className="cms-eyebrow">ACCESS RESTRICTED</p>
           <h1>CMS access required</h1>
-          <p className="cms-login-description">This account does not have an active CMS role. Ask an Administrator to assign or reactivate your account.</p>
+          <p className="cms-login-description">This sign-in email does not have an active CMS role. Ask an Administrator to check that your account is assigned and active.</p>
           {error && <p className="cms-alert cms-alert-error" role="alert">{error}</p>}
           <div className="cms-login-actions">
             <button className="cms-secondary-button" onClick={onPublicSite} type="button">Return to website</button>
