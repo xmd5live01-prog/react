@@ -283,7 +283,7 @@ function LoginScreen({ onLogin, onGoogleLogin, onResetPassword, busy, error, not
   );
 }
 
-function PasswordRecoveryScreen({ busy, error, onUpdatePassword }) {
+function PasswordRecoveryScreen({ busy, error, onUpdatePassword, temporaryPassword = false }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -301,8 +301,12 @@ function PasswordRecoveryScreen({ busy, error, onUpdatePassword }) {
       <form className="cms-login-card" onSubmit={submit}>
         <div className="cms-login-mark"><WaterLogo /></div>
         <p className="cms-eyebrow">HINUNANGAN WATER SYSTEM</p>
-        <h1>Set your Admin Page password</h1>
-        <p className="cms-login-description">Choose a new password for your administrator account.</p>
+        <h1>{temporaryPassword ? "Change your temporary password" : "Set your Admin Page password"}</h1>
+        <p className="cms-login-description">
+          {temporaryPassword
+            ? "Before you can continue, replace the temporary password with a new password."
+            : "Choose a new password for your administrator account."}
+        </p>
         {error && <p className="cms-alert cms-alert-error" role="alert">{error}</p>}
         <label htmlFor="cms-new-password">New password</label>
         <input autoComplete="new-password" id="cms-new-password" minLength={8} onChange={(event) => setPassword(event.target.value)} required type="password" value={password} />
@@ -383,6 +387,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
   const [adminCheckedUserId, setAdminCheckedUserId] = useState(null);
   const [busy, setBusy] = useState(false);
   const [passwordRecovery, setPasswordRecovery] = useState(() => new URLSearchParams(window.location.search).has("cms-recovery"));
+  const [passwordChangeRequired, setPasswordChangeRequired] = useState(false);
   const [loadingContent, setLoadingContent] = useState(false);
   const [contentLoaded, setContentLoaded] = useState(false);
   const [contentRetry, setContentRetry] = useState(0);
@@ -417,6 +422,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
       if (!mounted) return;
       if (sessionError) setError(sessionError.message);
       setSession(data.session);
+      setPasswordChangeRequired(Boolean(data.session?.user?.app_metadata?.cms_password_change_required));
       setAuthChecked(true);
       if (new URLSearchParams(window.location.search).has("cms-oauth")) {
         window.history.replaceState(null, "", `${window.location.pathname}#/admin`);
@@ -430,10 +436,12 @@ export default function AdminPage({ onPreview, onPublicSite }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
+      setPasswordChangeRequired(Boolean(nextSession?.user?.app_metadata?.cms_password_change_required));
       if (nextSession || event === "SIGNED_OUT") setError("");
       if (event === "SIGNED_OUT") {
         authGenerationRef.current += 1;
         setNotice("");
+        setPasswordChangeRequired(false);
         setIsCmsUser(false);
         setIsAdmin(false);
         setAccessPermissions([]);
@@ -453,6 +461,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
 
   useEffect(() => {
     if (!userId) return undefined;
+    if (passwordChangeRequired) return undefined;
 
     let mounted = true;
     const authGeneration = authGenerationRef.current;
@@ -507,7 +516,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
     });
 
     return () => { mounted = false; };
-  }, [userId, contentRetry]);
+  }, [userId, contentRetry, passwordChangeRequired]);
 
   useEffect(() => {
     if (!isAdmin || !userId) return undefined;
@@ -582,15 +591,44 @@ export default function AdminPage({ onPreview, onPublicSite }) {
     }
     setBusy(true);
     setError("");
-    const { error: updateError } = await supabase.auth.updateUser({ password });
-    if (updateError) {
-      setError(updateError.message);
-    } else {
+    try {
+      const { error: updateError } = await supabase.auth.updateUser({ password });
+      if (updateError) {
+        setError(updateError.message);
+        return;
+      }
+      if (passwordChangeRequired) {
+        const { error: completionError } = await supabase.functions.invoke("manage-cms-users", {
+          body: { action: "complete_password_change" },
+        });
+        if (completionError) {
+          const message = await getFunctionErrorMessage(completionError, "Unable to complete the required password change.");
+          setError(`Your password was updated, but the required password change could not be completed: ${message}`);
+          return;
+        }
+        const { data: refreshedData, error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError || !refreshedData.session) {
+          setError(`Your password was updated, but your sign-in session could not be refreshed. Please submit your new password again to retry. ${refreshError?.message ?? ""}`.trim());
+          return;
+        }
+        setSession(refreshedData.session);
+        const stillRequiresChange = Boolean(refreshedData.session.user.app_metadata?.cms_password_change_required);
+        setPasswordChangeRequired(stillRequiresChange);
+        if (stillRequiresChange) {
+          setError("Your password was updated, but the temporary-password requirement is still active. Please submit your new password again.");
+          return;
+        }
+      }
       setPasswordRecovery(false);
-      setNotice("Password updated. You are signed in to the CMS.");
+      setNotice(passwordChangeRequired
+        ? "Your password has been changed. You are signed in to the CMS."
+        : "Password updated. You are signed in to the CMS.");
       window.history.replaceState(null, "", `${window.location.pathname}#/admin`);
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : "Unable to update your password.");
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
 
   function updateSite(field, value) {
@@ -869,15 +907,15 @@ export default function AdminPage({ onPreview, onPublicSite }) {
     setBusy(false);
   }
 
-  async function getFunctionErrorMessage(functionError) {
+  async function getFunctionErrorMessage(functionError, fallback = "Unable to create the CMS user.") {
     const response = functionError?.context;
-    if (!(response instanceof Response)) return functionError?.message ?? "Unable to create the CMS user.";
+    if (!(response instanceof Response)) return functionError?.message ?? fallback;
 
     let responseBody;
     try {
       responseBody = await response.clone().json();
     } catch {
-      return `User creation failed (${response.status}). ${functionError.message}`;
+      return `User management failed (${response.status}). ${functionError.message}`;
     }
 
     const detail = typeof responseBody?.error === "string"
@@ -1015,10 +1053,14 @@ export default function AdminPage({ onPreview, onPublicSite }) {
 
   if (passwordRecovery) {
     if (!session) return <main className="cms-login-shell"><p className="cms-login-description">Validating password reset link...</p></main>;
-    return <PasswordRecoveryScreen busy={busy} error={error} onUpdatePassword={updatePassword} />;
+    return <PasswordRecoveryScreen busy={busy} error={error} onUpdatePassword={updatePassword} temporaryPassword={passwordChangeRequired} />;
   }
 
   if (!session) return <LoginScreen busy={busy} error={error} notice={notice} onGoogleLogin={loginWithGoogle} onLogin={login} onResetPassword={requestPasswordReset} />;
+
+  if (passwordChangeRequired) {
+    return <PasswordRecoveryScreen busy={busy} error={error} onUpdatePassword={updatePassword} temporaryPassword />;
+  }
 
   if (adminCheckedUserId !== userId || loadingContent) {
     return <main className="cms-login-shell"><p className="cms-login-description">Verifying administrator access...</p></main>;

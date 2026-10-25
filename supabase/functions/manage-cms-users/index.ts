@@ -95,6 +95,55 @@ Deno.serve(async (req) => {
 
   const body = input as Record<string, unknown>;
   const action = body.action;
+  if (action === "complete_password_change") {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error("CMS user management is missing Supabase environment variables.");
+      return jsonResponse({ error: "User management is not configured on the server." }, 503, origin);
+    }
+
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const { data: callerResult, error: callerError } = await supabase.auth.getUser(accessToken);
+    if (callerError || !callerResult.user) {
+      return jsonResponse({ error: "Your sign-in session is invalid or expired." }, 401, origin);
+    }
+    const { data: cmsUser, error: cmsUserError } = await supabase
+      .from("cms_users")
+      .select("active")
+      .eq("user_id", callerResult.user.id)
+      .maybeSingle();
+    if (cmsUserError) {
+      console.error("CMS user lookup failed while completing password change:", cmsUserError.message);
+      return jsonResponse({ error: "Unable to verify your CMS account." }, 500, origin);
+    }
+    if (!cmsUser?.active) {
+      return jsonResponse({ error: "An active CMS account is required to complete this password change." }, 403, origin);
+    }
+    if (callerResult.user.app_metadata?.cms_password_change_required !== true) {
+      return callerResult.user.app_metadata?.cms_password_change_required === false
+        ? jsonResponse({ success: true }, 200, origin)
+        : jsonResponse({ error: "No required temporary password change is pending." }, 400, origin);
+    }
+
+    const { error: updateError } = await supabase.auth.admin.updateUserById(
+      callerResult.user.id,
+      {
+        app_metadata: {
+          ...callerResult.user.app_metadata,
+          cms_password_change_required: false,
+        },
+      },
+    );
+    if (updateError) {
+      console.error("Could not clear required CMS password change:", updateError.message);
+      return jsonResponse({ error: "Your password was changed, but the requirement could not be cleared. Please retry." }, 500, origin);
+    }
+    return jsonResponse({ success: true }, 200, origin);
+  }
+
   if (action === "set_active") {
     const userId = typeof body.userId === "string" ? body.userId : "";
     const active = body.active;
@@ -216,10 +265,18 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "CMS user not found." }, 404, origin);
     }
 
-    const { error: passwordError } = await supabase.auth.admin.updateUserById(
-      userId,
-      { password },
-    );
+    const { data: authUserResult, error: authUserError } = await supabase.auth.admin.getUserById(userId);
+    if (authUserError || !authUserResult.user) {
+      console.error("CMS Auth user lookup failed during password reset:", authUserError?.message ?? "User not found.");
+      return jsonResponse({ error: "Unable to load the CMS user's authentication settings." }, 500, origin);
+    }
+    const { error: passwordError } = await supabase.auth.admin.updateUserById(userId, {
+      password,
+      app_metadata: {
+        ...authUserResult.user.app_metadata,
+        cms_password_change_required: true,
+      },
+    });
     if (passwordError) {
       return jsonResponse({ error: passwordError.message }, 400, origin);
     }
@@ -288,6 +345,7 @@ Deno.serve(async (req) => {
     email,
     password,
     email_confirm: true,
+    app_metadata: { cms_password_change_required: true },
   });
   if (createError) {
     return jsonResponse({ error: createError.message }, 400, origin);
