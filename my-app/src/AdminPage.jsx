@@ -377,6 +377,7 @@ function CollectionEditor({ section, items, onUpdate, onAdd, onMove }) {
 export default function AdminPage({ onPreview, onPublicSite }) {
   const [session, setSession] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [isCmsUser, setIsCmsUser] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [accessPermissions, setAccessPermissions] = useState([]);
   const [adminCheckedUserId, setAdminCheckedUserId] = useState(null);
@@ -449,6 +450,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
       if (!mounted) return;
       setAdminCheckedUserId(userId);
       if (!accessResult) {
+        setIsCmsUser(false);
         setIsAdmin(false);
         setAccessPermissions([]);
         setLoadingContent(false);
@@ -456,6 +458,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
       }
       const administrator = accessResult.role === "admin";
       const permissions = Array.isArray(accessResult.permissions) ? accessResult.permissions : [];
+      setIsCmsUser(true);
       setIsAdmin(administrator);
       setAccessPermissions(permissions);
 
@@ -482,6 +485,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
 
     loadCms().catch((loadError) => {
       if (!mounted) return;
+      setIsCmsUser(false);
       setIsAdmin(false);
       setAdminCheckedUserId(userId);
       setError(loadError instanceof Error ? loadError.message : "Unable to load CMS content.");
@@ -988,13 +992,13 @@ export default function AdminPage({ onPreview, onPublicSite }) {
     return <main className="cms-login-shell"><p className="cms-login-description">Verifying administrator access...</p></main>;
   }
 
-  if (!isAdmin) {
+  if (!isCmsUser) {
     return (
       <main className="cms-login-shell">
         <div className="cms-login-card">
           <p className="cms-eyebrow">ACCESS RESTRICTED</p>
-          <h1>Administrator access required</h1>
-          <p className="cms-login-description">This account is not on the approved CMS administrator list.</p>
+          <h1>CMS access required</h1>
+          <p className="cms-login-description">This account does not have an active CMS role. Ask an Administrator to assign or reactivate your account.</p>
           {error && <p className="cms-alert cms-alert-error" role="alert">{error}</p>}
           <div className="cms-login-actions">
             <button className="cms-secondary-button" onClick={onPublicSite} type="button">Return to website</button>
