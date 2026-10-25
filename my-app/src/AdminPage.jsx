@@ -397,6 +397,9 @@ export default function AdminPage({ onPreview, onPublicSite }) {
   const [newUserPermissions, setNewUserPermissions] = useState(["edit_sections", "save_draft"]);
   const [addingUser, setAddingUser] = useState(false);
   const [updatingUserId, setUpdatingUserId] = useState("");
+  const [passwordResetUserId, setPasswordResetUserId] = useState("");
+  const [passwordResetValue, setPasswordResetValue] = useState("");
+  const [resettingUserId, setResettingUserId] = useState("");
   const [published, setPublished] = useState(null);
   const [hasDraft, setHasDraft] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -864,8 +867,8 @@ export default function AdminPage({ onPreview, onPublicSite }) {
         ? responseBody.message
         : "";
     return detail
-      ? `User creation failed (${response.status}): ${detail}`
-      : `User creation failed (${response.status}). ${functionError.message}`;
+      ? `User management failed (${response.status}): ${detail}`
+      : `User management failed (${response.status}). ${functionError.message}`;
   }
 
   async function addManagedUser(event) {
@@ -936,6 +939,33 @@ export default function AdminPage({ onPreview, onPublicSite }) {
       setError(updateError instanceof Error ? updateError.message : "Unable to update this CMS user's status.");
     } finally {
       setUpdatingUserId("");
+    }
+  }
+
+  async function resetManagedUserPassword(user) {
+    setResettingUserId(user.user_id);
+    setError("");
+    setNotice("");
+    try {
+      const { error: resetError } = await supabase.functions.invoke("manage-cms-users", {
+        body: {
+          action: "reset_password",
+          userId: user.user_id,
+          password: passwordResetValue,
+        },
+      });
+      if (resetError) {
+        setError(await getFunctionErrorMessage(resetError));
+        return;
+      }
+
+      setPasswordResetUserId("");
+      setPasswordResetValue("");
+      setNotice(`Temporary password reset for ${user.email}. Share it securely and ask them to change it after signing in.`);
+    } catch (resetError) {
+      setError(resetError instanceof Error ? resetError.message : "Unable to reset this CMS user's password.");
+    } finally {
+      setResettingUserId("");
     }
   }
 
@@ -1137,6 +1167,52 @@ export default function AdminPage({ onPreview, onPublicSite }) {
                             >
                               {updatingUserId === user.user_id ? "Updating..." : user.active ? "Deactivate" : "Reactivate"}
                             </button>
+                            <button
+                              className="cms-user-password-button"
+                              disabled={updatingUserId !== "" || resettingUserId !== "" || user.user_id === userId}
+                              onClick={() => {
+                                setPasswordResetUserId((current) => current === user.user_id ? "" : user.user_id);
+                                setPasswordResetValue("");
+                              }}
+                              type="button"
+                            >
+                              Reset password
+                            </button>
+                            {passwordResetUserId === user.user_id && (
+                              <form
+                                className="cms-user-password-form"
+                                onSubmit={(event) => {
+                                  event.preventDefault();
+                                  resetManagedUserPassword(user);
+                                }}
+                              >
+                                <label className="cms-field">
+                                  <span>New temporary password (at least 12 characters)</span>
+                                  <input
+                                    autoComplete="new-password"
+                                    disabled={resettingUserId === user.user_id}
+                                    minLength={12}
+                                    onChange={(event) => setPasswordResetValue(event.target.value)}
+                                    required
+                                    type="password"
+                                    value={passwordResetValue}
+                                  />
+                                </label>
+                                <div className="cms-action-row">
+                                  <button className="cms-primary-button" disabled={resettingUserId === user.user_id} type="submit">
+                                    {resettingUserId === user.user_id ? "Resetting..." : "Set temporary password"}
+                                  </button>
+                                  <button
+                                    className="cms-secondary-button"
+                                    disabled={resettingUserId === user.user_id}
+                                    onClick={() => { setPasswordResetUserId(""); setPasswordResetValue(""); }}
+                                    type="button"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </form>
+                            )}
                           </article>
                         ))}
                       </div>

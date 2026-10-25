@@ -162,6 +162,71 @@ Deno.serve(async (req) => {
     return jsonResponse({ user: updatedUser }, 200, origin);
   }
 
+  if (action === "reset_password") {
+    const userId = typeof body.userId === "string" ? body.userId : "";
+    const password = typeof body.password === "string" ? body.password : "";
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId)) {
+      return jsonResponse({ error: "Choose a valid CMS user." }, 400, origin);
+    }
+    if (password.length < 12 || password.length > 72) {
+      return jsonResponse({ error: "Temporary passwords must be 12 to 72 characters long." }, 400, origin);
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error("CMS user management is missing Supabase environment variables.");
+      return jsonResponse({ error: "User management is not configured on the server." }, 503, origin);
+    }
+
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const { data: callerResult, error: callerError } = await supabase.auth.getUser(accessToken);
+    if (callerError || !callerResult.user) {
+      return jsonResponse({ error: "Your sign-in session is invalid or expired." }, 401, origin);
+    }
+
+    const { data: callerRole, error: roleError } = await supabase
+      .from("cms_users")
+      .select("role,active")
+      .eq("user_id", callerResult.user.id)
+      .maybeSingle();
+    if (roleError) {
+      console.error("CMS administrator authorization check failed:", roleError.message);
+      return jsonResponse({ error: "Unable to verify Administrator access." }, 500, origin);
+    }
+    if (callerRole?.role !== "admin" || !callerRole.active) {
+      return jsonResponse({ error: "Administrator access is required to reset passwords." }, 403, origin);
+    }
+    if (userId === callerResult.user.id) {
+      return jsonResponse({ error: "Use the password recovery option to change your own password." }, 400, origin);
+    }
+
+    const { data: targetUser, error: targetError } = await supabase
+      .from("cms_users")
+      .select("email")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (targetError) {
+      console.error("CMS user lookup failed during password reset:", targetError.message);
+      return jsonResponse({ error: "Unable to find the CMS user." }, 500, origin);
+    }
+    if (!targetUser) {
+      return jsonResponse({ error: "CMS user not found." }, 404, origin);
+    }
+
+    const { error: passwordError } = await supabase.auth.admin.updateUserById(
+      userId,
+      { password },
+    );
+    if (passwordError) {
+      return jsonResponse({ error: passwordError.message }, 400, origin);
+    }
+
+    return jsonResponse({ user: { email: targetUser.email } }, 200, origin);
+  }
+
   if (action !== undefined && action !== "create") {
     return jsonResponse({ error: "Choose a supported user-management action." }, 400, origin);
   }
