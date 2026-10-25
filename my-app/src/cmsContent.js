@@ -1,6 +1,24 @@
+export const DEFAULT_SECTION_ORDER = {
+  classic: ["hero", "services", "payments", "steps", "footer"],
+  "modern-minimal": ["hero", "payments", "services", "steps", "footer"],
+  "warm-community": ["hero", "services", "steps", "payments", "footer"],
+  "elegant-water": ["hero", "payments", "steps", "services", "footer"],
+};
+
+export const BUILT_IN_SECTIONS = [
+  ["hero", "Hero & announcements"],
+  ["services", "Services"],
+  ["payments", "Payment methods"],
+  ["steps", "How it works"],
+  ["footer", "App footer"],
+];
+
 export const DEFAULT_CMS_CONTENT = {
   siteTitle: "Hinunangan Water",
   landingTemplate: "classic",
+  layoutOrder: DEFAULT_SECTION_ORDER.classic,
+  hiddenSections: [],
+  customSections: [],
   siteLogoImage: "",
   heroBackgroundImage: "",
   primaryColor: "#0866ff",
@@ -123,6 +141,22 @@ export function normalizeCmsContent(content) {
     landingTemplate: ["classic", "modern-minimal", "warm-community", "elegant-water"].includes(content.landingTemplate)
       ? content.landingTemplate
       : DEFAULT_CMS_CONTENT.landingTemplate,
+    customSections: Array.isArray(content.customSections)
+      ? content.customSections.filter((section) => section && typeof section === "object" && typeof section.id === "string").map((section) => ({
+        id: section.id,
+        title: typeof section.title === "string" ? section.title : "",
+        text: typeof section.text === "string" ? section.text : "",
+        imageUrl: typeof section.imageUrl === "string" ? section.imageUrl : "",
+        imageAlt: typeof section.imageAlt === "string" ? section.imageAlt : "",
+        buttonText: typeof section.buttonText === "string" ? section.buttonText : "",
+        buttonUrl: typeof section.buttonUrl === "string" ? section.buttonUrl : "",
+        layout: ["text", "image-left", "image-right", "centered"].includes(section.layout) ? section.layout : "text",
+        background: ["page", "surface", "primary"].includes(section.background) ? section.background : "surface",
+      }))
+      : [],
+    hiddenSections: Array.isArray(content.hiddenSections)
+      ? [...new Set(content.hiddenSections.filter((section) => typeof section === "string"))]
+      : [],
     siteLogoImage: typeof content.siteLogoImage === "string" ? content.siteLogoImage : DEFAULT_CMS_CONTENT.siteLogoImage,
     heroBackgroundImage: typeof content.heroBackgroundImage === "string" ? content.heroBackgroundImage : DEFAULT_CMS_CONTENT.heroBackgroundImage,
     heroSlides: Array.isArray(content.heroSlides) ? content.heroSlides : DEFAULT_CMS_CONTENT.heroSlides,
@@ -131,6 +165,20 @@ export function normalizeCmsContent(content) {
     paymentMethods: Array.isArray(content.paymentMethods) ? content.paymentMethods : DEFAULT_CMS_CONTENT.paymentMethods,
     steps: Array.isArray(content.steps) ? content.steps : DEFAULT_CMS_CONTENT.steps,
   };
+
+  const validSectionIds = new Set([
+    ...BUILT_IN_SECTIONS.map(([id]) => id),
+    ...normalized.customSections.map((section) => `custom:${section.id}`),
+  ]);
+  const requestedOrder = Array.isArray(content.layoutOrder)
+    ? content.layoutOrder.filter((id) => typeof id === "string" && validSectionIds.has(id))
+    : DEFAULT_SECTION_ORDER[normalized.landingTemplate];
+  normalized.layoutOrder = [...new Set([
+    ...requestedOrder,
+    ...DEFAULT_SECTION_ORDER[normalized.landingTemplate].filter((id) => validSectionIds.has(id)),
+    ...normalized.customSections.map((section) => `custom:${section.id}`),
+  ])];
+  normalized.hiddenSections = normalized.hiddenSections.filter((id) => validSectionIds.has(id));
 
   for (const field of [
     "primaryColor",

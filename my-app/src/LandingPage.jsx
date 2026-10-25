@@ -54,6 +54,17 @@ const StoreButton = ({ logo, small, name }) => (
   </button>
 );
 
+function getSafeSectionLink(value) {
+  const link = value.trim();
+  if (link.startsWith("#") || (link.startsWith("/") && !link.startsWith("//"))) return link;
+  try {
+    const parsed = new URL(link, window.location.origin);
+    return ["http:", "https:"].includes(parsed.protocol) ? parsed.href : "#";
+  } catch {
+    return "#";
+  }
+}
+
 export default function LandingPage({
   onSearchBill,
   content: contentInput = DEFAULT_CMS_CONTENT,
@@ -160,6 +171,8 @@ export default function LandingPage({
       {/* HERO SLIDESHOW */}
       <section id="top"
         className="hero-bg landing-hero-section relative flex min-h-svh flex-col justify-center overflow-hidden pb-[120px] text-white"
+        hidden={content.hiddenSections.includes("hero")}
+        style={{ order: content.layoutOrder.indexOf("hero") }}
         onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
         onTouchEnd={(e) => {
           const dx = e.changedTouches[0].clientX - touchX.current;
@@ -238,7 +251,7 @@ export default function LandingPage({
       </section>
 
       {/* SERVICES */}
-      <section id="services" className="landing-reorderable landing-services-section site-page-bg py-20">
+      <section id="services" className="landing-reorderable landing-services-section site-page-bg py-20" hidden={content.hiddenSections.includes("services")} style={{ order: content.layoutOrder.indexOf("services") }}>
         <div className={wrap}>
           <h2 className={`${h2} mb-2.5`}>{content.servicesHeading}</h2>
           <p className="site-muted mb-10 text-[1.1rem]">{content.servicesSubheading}</p>
@@ -258,6 +271,8 @@ export default function LandingPage({
         aria-label="Payment methods"
         aria-roledescription="carousel"
         className="landing-reorderable landing-payment-section site-surface-bg py-16 sm:py-20"
+        hidden={content.hiddenSections.includes("payments")}
+        style={{ order: content.layoutOrder.indexOf("payments") }}
         onBlur={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget)) setPaymentSlidePaused(false);
         }}
@@ -369,7 +384,7 @@ export default function LandingPage({
       </section>
 
       {/* HOW IT WORKS */}
-      <section id="how" className="landing-reorderable landing-steps-section site-surface-bg pb-[170px] pt-20">
+      <section id="how" className="landing-reorderable landing-steps-section site-surface-bg pb-[170px] pt-20" hidden={content.hiddenSections.includes("steps")} style={{ order: content.layoutOrder.indexOf("steps") }}>
         <div className={wrap}>
           <h2 className={h2}>{content.stepsHeading}</h2>
           <ol className="mt-9 grid list-none grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-[26px] p-0">
@@ -387,7 +402,36 @@ export default function LandingPage({
       </section>
 
       {/* FIXED FOOTER */}
-      <footer id="app" className="site-footer fixed inset-x-0 bottom-0 z-50 border-t border-white/15 px-[clamp(12px,4vw,48px)] pt-2.5 pb-[calc(10px+env(safe-area-inset-bottom,0px))] text-white backdrop-blur-xl">
+      {content.layoutOrder.filter((sectionId) => sectionId.startsWith("custom:")).map((sectionId) => {
+        const section = content.customSections.find((item) => `custom:${item.id}` === sectionId);
+        if (!section || content.hiddenSections.includes(sectionId)) return null;
+        const imageFirst = section.layout === "image-left";
+        return (
+          <section
+            className={`custom-content-section custom-section-${section.background} custom-layout-${section.layout}`}
+            hidden={content.hiddenSections.includes(sectionId)}
+            key={section.id}
+            style={{ order: content.layoutOrder.indexOf(sectionId) }}
+          >
+            <div className={`custom-content-inner${imageFirst ? " is-image-first" : ""}`}>
+              {section.imageUrl && section.layout !== "text" && (
+                <img alt={section.imageAlt || ""} className="custom-content-image" src={section.imageUrl} />
+              )}
+              <div className="custom-content-copy">
+                {section.title && <h2 className={h2}>{section.title}</h2>}
+                {section.text && <p className="site-muted whitespace-pre-line">{section.text}</p>}
+                {section.buttonText && section.buttonUrl && (
+                  <a className="custom-content-button site-primary-bg" href={getSafeSectionLink(section.buttonUrl)} rel="noreferrer" target={/^https?:\/\//i.test(section.buttonUrl.trim()) ? "_blank" : undefined}>
+                    {section.buttonText}
+                  </a>
+                )}
+              </div>
+            </div>
+          </section>
+        );
+      })}
+
+      <footer id="app" className="site-footer fixed inset-x-0 bottom-0 z-50 border-t border-white/15 px-[clamp(12px,4vw,48px)] pt-2.5 pb-[calc(10px+env(safe-area-inset-bottom,0px))] text-white backdrop-blur-xl" hidden={content.hiddenSections.includes("footer")} style={{ order: content.layoutOrder.indexOf("footer") }}>
         <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-3">
           <StoreButton logo={<GooglePlayLogo />} small="Coming soon on" name="Google Play" />
           <p className="hidden text-center text-[.9rem] text-white/80 sm:block">{content.footerTagline}</p>

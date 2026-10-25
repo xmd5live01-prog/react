@@ -1,11 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { DEFAULT_CMS_CONTENT, normalizeCmsContent } from "./cmsContent";
+import {
+  BUILT_IN_SECTIONS,
+  DEFAULT_CMS_CONTENT,
+  DEFAULT_SECTION_ORDER,
+  normalizeCmsContent,
+} from "./cmsContent";
 import { isSupabaseConfigured, supabase } from "./supabaseClient";
 import "./AdminPage.css";
 
 const PANELS = [
   ["overview", "Dashboard"],
   ["heroSlides", "Hero slideshow"],
+  ["layout", "Layout editor"],
   ["announcements", "Announcements"],
   ["services", "Services"],
   ["paymentMethods", "Payment methods"],
@@ -92,6 +98,7 @@ function Icon({ name }) {
     services: <><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M7 9h10M7 13h7M7 17h4" /></>,
     paymentMethods: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18M7 15h4" /></>,
     steps: <><circle cx="5" cy="6" r="2" /><circle cx="5" cy="12" r="2" /><circle cx="5" cy="18" r="2" /><path d="M11 6h9M11 12h9M11 18h9" /></>,
+    layout: <><rect x="3" y="4" width="18" height="5" rx="1" /><rect x="3" y="11" width="18" height="4" rx="1" /><rect x="3" y="17" width="18" height="3" rx="1" /></>,
     site: <><circle cx="12" cy="12" r="3" /><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.6a8 8 0 0 1-1.5.9l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.5-.9l-1.7.6-1.4-2.4 1.4-1.1a7 7 0 0 1 0-1.8l-1.4-1.1 1.4-2.4 1.7.6a8 8 0 0 1 1.5-.9l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.5.9l1.7-.6 1.4 2.4-1.4 1.1a7 7 0 0 1 0 1.7Z" /></>,
     revisions: <><path d="M3 12a9 9 0 1 0 2.6-6.4L3 8" /><path d="M3 3v5h5M12 7v5l3 2" /></>,
     logout: <><path d="M10 17l5-5-5-5M15 12H3" /><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" /></>,
@@ -404,6 +411,125 @@ export default function AdminPage({ onPreview, onPublicSite }) {
     setNotice("");
   }
 
+  function chooseTemplate(template) {
+    const customIds = draft.customSections.map((section) => `custom:${section.id}`);
+    const templateOrder = DEFAULT_SECTION_ORDER[template] ?? DEFAULT_SECTION_ORDER.classic;
+    setDraft((current) => ({
+      ...current,
+      landingTemplate: template,
+      layoutOrder: [
+        ...templateOrder.filter((id) => id !== "footer"),
+        ...customIds,
+        "footer",
+      ],
+    }));
+    setDirty(true);
+    setNotice("");
+  }
+
+  function moveLayoutSection(index, direction) {
+    setDraft((current) => {
+      const layoutOrder = [...current.layoutOrder];
+      const target = index + direction;
+      if (
+        target < 0
+        || target >= layoutOrder.length
+        || layoutOrder[index] === "footer"
+        || layoutOrder[target] === "footer"
+      ) return current;
+      [layoutOrder[index], layoutOrder[target]] = [layoutOrder[target], layoutOrder[index]];
+      return { ...current, layoutOrder };
+    });
+    setDirty(true);
+    setNotice("");
+  }
+
+  function toggleLayoutSection(sectionId) {
+    setDraft((current) => ({
+      ...current,
+      hiddenSections: current.hiddenSections.includes(sectionId)
+        ? current.hiddenSections.filter((id) => id !== sectionId)
+        : [...current.hiddenSections, sectionId],
+    }));
+    setDirty(true);
+    setNotice("");
+  }
+
+  function addCustomSection() {
+    const section = {
+      id: crypto.randomUUID(),
+      title: "New section",
+      text: "Add your section content here.",
+      imageUrl: "",
+      imageAlt: "",
+      buttonText: "",
+      buttonUrl: "",
+      layout: "text",
+      background: "surface",
+    };
+    setDraft((current) => {
+      const layoutOrder = [...current.layoutOrder];
+      const footerIndex = layoutOrder.indexOf("footer");
+      layoutOrder.splice(footerIndex === -1 ? layoutOrder.length : footerIndex, 0, `custom:${section.id}`);
+      return { ...current, customSections: [...current.customSections, section], layoutOrder };
+    });
+    setDirty(true);
+    setNotice("");
+  }
+
+  function updateCustomSection(sectionId, field, value) {
+    setDraft((current) => ({
+      ...current,
+      customSections: current.customSections.map((section) => (
+        section.id === sectionId ? { ...section, [field]: value } : section
+      )),
+    }));
+    setDirty(true);
+    setNotice("");
+  }
+
+  function removeCustomSection(sectionId) {
+    setDraft((current) => ({
+      ...current,
+      customSections: current.customSections.filter((section) => section.id !== sectionId),
+      layoutOrder: current.layoutOrder.filter((id) => id !== `custom:${sectionId}`),
+      hiddenSections: current.hiddenSections.filter((id) => id !== `custom:${sectionId}`),
+    }));
+    setDirty(true);
+    setNotice("");
+  }
+
+  async function uploadCustomSectionImage(sectionId, file) {
+    if (!file) return;
+    const extension = MEDIA_TYPES[file.type];
+    if (!extension) {
+      setError("Choose a JPEG, PNG, or WebP image.");
+      return;
+    }
+    if (file.size > MAX_MEDIA_SIZE) {
+      setError("Images must be 5 MB or smaller.");
+      return;
+    }
+
+    setBusy(true);
+    setError("");
+    setNotice("");
+    const path = `${session.user.id}/${crypto.randomUUID()}.${extension}`;
+    const { error: uploadError } = await supabase.storage
+      .from("cms-media")
+      .upload(path, file, { cacheControl: "3600", contentType: file.type, upsert: false });
+    if (uploadError) {
+      setError(uploadError.message);
+      setBusy(false);
+      return;
+    }
+
+    const { data } = supabase.storage.from("cms-media").getPublicUrl(path);
+    updateCustomSection(sectionId, "imageUrl", data.publicUrl);
+    setNotice("Image uploaded. Save the draft and publish it to update the public site.");
+    setBusy(false);
+  }
+
   async function uploadSiteImage(field, file) {
     if (!file) return;
     const extension = MEDIA_TYPES[file.type];
@@ -690,6 +816,65 @@ export default function AdminPage({ onPreview, onPublicSite }) {
                 />
               )}
 
+              {panel === "layout" && (
+                <section className="cms-panel-content">
+                  <div className="cms-section-toolbar">
+                    <div><h2>Layout editor</h2><p>Arrange page sections, hide sections you do not need, and create custom content sections.</p></div>
+                    <button className="cms-primary-button" disabled={busy} onClick={addCustomSection} type="button">＋ Add section</button>
+                  </div>
+                  <div className="cms-info-card cms-layout-list-card">
+                    <div className="cms-branding-heading"><div><h3>Page structure</h3><p>Use the arrows to reorder sections. Hidden sections remain editable and can be restored.</p></div></div>
+                    <ol className="cms-layout-list">
+                      {draft.layoutOrder.map((sectionId, index) => {
+                        const customSection = sectionId.startsWith("custom:")
+                          ? draft.customSections.find((section) => `custom:${section.id}` === sectionId)
+                          : null;
+                        const label = customSection?.title || BUILT_IN_SECTIONS.find(([id]) => id === sectionId)?.[1] || "Custom section";
+                        const isHidden = draft.hiddenSections.includes(sectionId);
+                        return (
+                          <li className={`cms-layout-row${isHidden ? " is-hidden" : ""}`} key={sectionId}>
+                            <span className="cms-layout-position">{index + 1}</span>
+                            <div className="cms-layout-name"><strong>{label}</strong><small>{sectionId === "footer" ? "Fixed footer; visibility only" : customSection ? "Custom content" : "Built-in page section"}</small></div>
+                            <label className="cms-layout-toggle"><input checked={!isHidden} onChange={() => toggleLayoutSection(sectionId)} type="checkbox" /><span>{isHidden ? "Hidden" : "Visible"}</span></label>
+                            <div className="cms-layout-actions">
+                              <button aria-label={`Move ${label} up`} disabled={busy || index === 0 || sectionId === "footer" || draft.layoutOrder[index - 1] === "footer"} onClick={() => moveLayoutSection(index, -1)} type="button">↑</button>
+                              <button aria-label={`Move ${label} down`} disabled={busy || index === draft.layoutOrder.length - 1 || sectionId === "footer" || draft.layoutOrder[index + 1] === "footer"} onClick={() => moveLayoutSection(index, 1)} type="button">↓</button>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  </div>
+                  <div className="cms-layout-custom-list">
+                    {draft.customSections.map((section) => (
+                      <article className="cms-info-card cms-custom-section-card" key={section.id}>
+                        <div className="cms-custom-section-header">
+                          <div><h3>{section.title || "Untitled section"}</h3><p>Edit the section content shown on your public landing page.</p></div>
+                          <button className="cms-reset-image" disabled={busy} onClick={() => removeCustomSection(section.id)} type="button">Remove section</button>
+                        </div>
+                        <div className="cms-custom-section-fields">
+                          <label className="cms-field"><span>Section heading</span><input disabled={busy} onChange={(event) => updateCustomSection(section.id, "title", event.target.value)} value={section.title} /></label>
+                          <label className="cms-field cms-field-text"><span>Text</span><textarea disabled={busy} onChange={(event) => updateCustomSection(section.id, "text", event.target.value)} rows={4} value={section.text} /></label>
+                          <label className="cms-field"><span>Layout</span><select disabled={busy} onChange={(event) => updateCustomSection(section.id, "layout", event.target.value)} value={section.layout}><option value="text">Text only</option><option value="image-left">Image left</option><option value="image-right">Image right</option><option value="centered">Centered</option></select></label>
+                          <label className="cms-field"><span>Background</span><select disabled={busy} onChange={(event) => updateCustomSection(section.id, "background", event.target.value)} value={section.background}><option value="surface">Surface</option><option value="page">Page background</option><option value="primary">Primary color</option></select></label>
+                          <label className="cms-field"><span>Button label (optional)</span><input disabled={busy} onChange={(event) => updateCustomSection(section.id, "buttonText", event.target.value)} value={section.buttonText} /></label>
+                          <label className="cms-field"><span>Button link (optional)</span><input disabled={busy} onChange={(event) => updateCustomSection(section.id, "buttonUrl", event.target.value)} placeholder="https://... or #services" value={section.buttonUrl} /></label>
+                        </div>
+                        <div className="cms-custom-media">
+                          <div className="cms-media-preview">
+                            {section.imageUrl ? <img alt={section.imageAlt || `${section.title} preview`} src={section.imageUrl} /> : <span>Optional section image</span>}
+                          </div>
+                          <div className="cms-custom-media-controls">
+                            <label className="cms-field"><span>Upload image (JPG, PNG, WebP; max 5 MB)</span><input accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; uploadCustomSectionImage(section.id, file); }} type="file" /></label>
+                            <label className="cms-field"><span>Image description (accessibility)</span><input disabled={busy} onChange={(event) => updateCustomSection(section.id, "imageAlt", event.target.value)} value={section.imageAlt} /></label>
+                          </div>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              )}
+
               {panel === "site" && (
                 <section className="cms-panel-content">
                   <div className="cms-section-toolbar"><div><h2>Site settings</h2><p>Update shared labels, branding, and colors displayed across the public site.</p></div><button className="cms-secondary-button" disabled={busy} onClick={resetBranding} type="button">Reset branding</button></div>
@@ -702,7 +887,7 @@ export default function AdminPage({ onPreview, onPublicSite }) {
                           className={`cms-template-card${draft.landingTemplate === id ? " is-selected" : ""}`}
                           disabled={busy}
                           key={id}
-                          onClick={() => updateSite("landingTemplate", id)}
+                          onClick={() => chooseTemplate(id)}
                           type="button"
                         >
                           <span aria-hidden="true" className={`cms-template-preview cms-template-preview-${id}`}>
